@@ -30,10 +30,9 @@ export default function Signup(){
         // remove the temporary phoneNumber field so backend receives 'phone'
         delete payload.phoneNumber
       }
-  const { data } = await axios.post((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/auth/signup', payload);
-  localStorage.setItem('token', data.token);
-  window.dispatchEvent(new Event('tokenChange'));
-  nav('/profile');
+      const { data } = await axios.post((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/auth/signup', payload);
+      localStorage.setItem('token', data.token);
+      nav('/dashboard');
     }catch(err){ alert(err?.response?.data?.error || 'Error'); }
     setLoading(false);
   }
@@ -43,8 +42,8 @@ export default function Signup(){
       <h3>Create account</h3>
       <div className="form-row">
         <div className="form-col"><input placeholder="Full name" value={form.fullName||''} onChange={e=>setField('fullName', e.target.value)} required/></div>
-        <div className="form-col" style={{display:'flex',alignItems:'center',gap:8}}>
-          <span style={{fontSize:22}}>{(countries.find(c=>c.code===form.country)||{}).flag || '🌐'}</span>
+        <div className="form-col">
+          <label className="sr-only">Location</label>
           <select value={form.country} onChange={e=>{ const c = countries.find(x=>x.code===e.target.value); setField('country', e.target.value); if(c) setField('dial', c.dial); }}>
             {countries.map(c=> <option key={c.code} value={c.code}>{c.flag} {c.name}</option>)}
           </select>
@@ -53,9 +52,8 @@ export default function Signup(){
 
       <input placeholder="Username" value={form.username||''} onChange={e=>setField('username', e.target.value)} required/>
 
-      <div style={{display:'flex',gap:8,alignItems:'center'}}>
-        <span style={{fontSize:18}}>{(countries.find(c=>c.dial===form.dial)||{}).flag || '📞'}</span>
-        <select style={{width:220}} value={form.dial||''} onChange={e=>setField('dial', e.target.value)}>
+      <div style={{display:'flex',gap:8}}>
+        <select style={{width:160}} value={form.dial||''} onChange={e=>setField('dial', e.target.value)}>
           {countries.map(c=> (<option key={c.code} value={c.dial}>{c.flag} {c.name} ({c.dial})</option>))}
         </select>
         <input placeholder="Phone number" value={form.phoneNumber||''} onChange={e=>setField('phoneNumber', e.target.value)} />
