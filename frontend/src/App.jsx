@@ -10,14 +10,25 @@ import AdminPanel from './pages/AdminPanel'
 
 export default function App(){
   return (
-    <div style={{fontFamily: 'Inter, system-ui, Arial', padding: 10}}>
-      <header style={{display:'flex',gap:12,alignItems:'center',justifyContent:'space-between'}}>
-        <h1>Swift EMC Marketplace</h1>
-        <nav>
-          <Link to="/">Home</Link> | <Link to="/listings">Browse</Link> | <Link to="/signup">Sign up</Link> | <Link to="/login">Login</Link>
+    <div className="app">
+      <header className="site-header">
+        <div className="brand">
+          <div className="logo"/>
+          <div>
+            <h1 style={{fontSize:18,margin:0}}>Swift EMC Marketplace</h1>
+            <div className="muted" style={{fontSize:12}}>Modern. Fast. Secure.</div>
+          </div>
+        </div>
+        <nav className="site-nav">
+          <Link to="/">Home</Link>
+          <Link to="/listings">Browse</Link>
+          <Link to="/signup">Sign up</Link>
+          <Link to="/login">Login</Link>
+          {/* Admin link intentionally subtle; remove or keep hidden in production */}
+          <Link to="/Adminpanel" style={{display:'none'}}>Admin</Link>
         </nav>
       </header>
-      <main style={{marginTop:20}}>
+      <main className="site-main">
         <Routes>
           <Route path="/" element={<Home/>} />
           <Route path="/signup" element={<Signup/>} />
