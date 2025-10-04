@@ -11,8 +11,9 @@ export default function Login(){
     setLoading(true);
     try{
       const { data } = await axios.post((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/auth/login', { identifier: form.identifier, password: form.password });
-      localStorage.setItem('token', data.token);
-      nav('/dashboard');
+  localStorage.setItem('token', data.token);
+  window.dispatchEvent(new Event('tokenChange'));
+  nav('/profile');
     }catch(err){ alert(err?.response?.data?.error || 'Error'); }
     setLoading(false);
   }
