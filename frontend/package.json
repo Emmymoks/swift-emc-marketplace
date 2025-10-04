@@ -1,0 +1,23 @@
+{
+  "name": "swift-emc-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.4.0",
+    "i18next": "^23.0.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-i18next": "^13.0.1",
+    "react-router-dom": "^6.14.1",
+    "socket.io-client": "^4.7.1"
+  },
+  "devDependencies": {
+    "vite": "^5.0.9",
+    "@vitejs/plugin-react": "^4.1.0"
+  }
+}
