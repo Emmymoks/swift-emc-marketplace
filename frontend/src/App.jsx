@@ -12,21 +12,31 @@ import AdminPanel from './pages/AdminPanel'
 
 export default function App(){
   const [token, setToken] = useState(localStorage.getItem('token'))
+  const [isAdmin, setIsAdmin] = useState(!!sessionStorage.getItem('admin_secret'))
   const [mobileOpen, setMobileOpen] = useState(false)
   const nav = useNavigate()
 
   useEffect(()=>{
     function onStorage(){ setToken(localStorage.getItem('token')) }
     function onTokenChange(){ setToken(localStorage.getItem('token')) }
+    function onAdminChange(){ setIsAdmin(!!sessionStorage.getItem('admin_secret')) }
     window.addEventListener('storage', onStorage)
     window.addEventListener('tokenChange', onTokenChange)
-    return ()=> { window.removeEventListener('storage', onStorage); window.removeEventListener('tokenChange', onTokenChange) }
+    window.addEventListener('adminChange', onAdminChange)
+    return ()=> { window.removeEventListener('storage', onStorage); window.removeEventListener('tokenChange', onTokenChange); window.removeEventListener('adminChange', onAdminChange) }
   },[])
 
   function handleSignOut(){
     localStorage.removeItem('token')
     setToken(null)
     setMobileOpen(false)
+    nav('/')
+  }
+
+  function handleAdminSignOut(){
+    sessionStorage.removeItem('admin_secret')
+    setIsAdmin(false)
+    window.dispatchEvent(new Event('adminChange'))
     nav('/')
   }
 
@@ -52,6 +62,7 @@ export default function App(){
           {token && <Link to="/profile">Profile</Link>}
           {token && <Link to="/add-listing">Add listing</Link>}
           {token && <button className="btn ghost" onClick={handleSignOut} style={{marginLeft:8}}>Sign out</button>}
+          {isAdmin && <button className="btn ghost" onClick={handleAdminSignOut} style={{marginLeft:8}}>Admin logout</button>}
         </nav>
 
         {/* Mobile hamburger */}
@@ -72,6 +83,7 @@ export default function App(){
           {token && <Link to="/profile">Profile</Link>}
           {token && <Link to="/add-listing">Add listing</Link>}
           {token && <button className="btn ghost" onClick={e=>{ e.preventDefault(); handleSignOut(); }}>Sign out</button>}
+          {isAdmin && <button className="btn ghost" onClick={e=>{ e.preventDefault(); handleAdminSignOut(); }}>Admin logout</button>}
         </div>
       </header>
 
