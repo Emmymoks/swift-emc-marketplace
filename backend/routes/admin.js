@@ -16,9 +16,9 @@ function adminAuth(req, res, next){
 
 // admin login via email/password (uses env values)
 router.post('/login', (req, res) => {
-  const { password } = req.body;
-  if (!password) return res.status(400).json({ error: 'Missing password' });
-  if (password === ADMIN_PASSWORD) return res.json({ ok: true, secret: ADMIN_PASSWORD });
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: 'Missing credentials' });
+  if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) return res.json({ ok: true, secret: ADMIN_PASSWORD });
   return res.status(401).json({ error: 'Invalid admin credentials' });
 });
 
