@@ -14,6 +14,14 @@ function adminAuth(req, res, next){
   return res.status(401).json({ error: 'Unauthorized' });
 }
 
+// admin login via email/password (uses env values)
+router.post('/login', (req, res) => {
+  const { password } = req.body;
+  if (!password) return res.status(400).json({ error: 'Missing password' });
+  if (password === ADMIN_PASSWORD) return res.json({ ok: true, secret: ADMIN_PASSWORD });
+  return res.status(401).json({ error: 'Invalid admin credentials' });
+});
+
 router.get('/listings', adminAuth, async (req, res) => {
   const pending = await Listing.find({ approved: false }).populate('owner','username email');
   res.json({ pending });
