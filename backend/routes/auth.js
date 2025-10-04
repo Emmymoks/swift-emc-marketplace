@@ -39,7 +39,24 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// complete profile
+
+
+// get profile (authenticated)
+router.get('/profile', async (req, res) => {
+  try {
+    const auth = req.headers.authorization;
+    if (!auth) return res.status(401).json({ error: 'No token' });
+    const token = auth.replace('Bearer ', '');
+    const data = jwt.verify(token, process.env.JWT_SECRET || 'dev_secret');
+    const user = await User.findById(data.id).select('-passwordHash -securityAnswerHash');
+    if (!user) return res.status(404).json({ error: 'Not found' });
+    res.json({ user });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// allow updating email, phone, fullName and other profile fields
 router.put('/profile', async (req, res) => {
   try {
     const auth = req.headers.authorization;
@@ -48,7 +65,15 @@ router.put('/profile', async (req, res) => {
     const data = jwt.verify(token, process.env.JWT_SECRET || 'dev_secret');
     const user = await User.findById(data.id);
     if (!user) return res.status(404).json({ error: 'Not found' });
-    const { profilePhotoUrl, bio, location, currency, language } = req.body;
+    const { profilePhotoUrl, bio, location, currency, language, email, phone, fullName } = req.body;
+    // if updating email, ensure it's not taken
+    if (email && email !== user.email){
+      const exists = await User.findOne({ email });
+      if (exists) return res.status(400).json({ error: 'Email already in use' });
+      user.email = email;
+    }
+    if (fullName) user.fullName = fullName;
+    if (phone) user.phone = phone;
     user.profilePhotoUrl = profilePhotoUrl || user.profilePhotoUrl;
     user.bio = bio || user.bio;
     user.location = location || user.location;
