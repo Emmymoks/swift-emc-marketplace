@@ -50,7 +50,7 @@ export default function App(){
           {!token && <Link to="/login">Login</Link>}
           {/* when logged in show profile, add listing and sign out */}
           {token && <Link to="/profile">Profile</Link>}
-          {token && <Link to="/dashboard">Add listing</Link>}
+          {token && <Link to="/add-listing">Add listing</Link>}
           {token && <button className="btn ghost" onClick={handleSignOut} style={{marginLeft:8}}>Sign out</button>}
         </nav>
 
@@ -70,7 +70,7 @@ export default function App(){
           {!token && <Link to="/signup">Sign up</Link>}
           {!token && <Link to="/login">Login</Link>}
           {token && <Link to="/profile">Profile</Link>}
-          {token && <Link to="/dashboard">Add listing</Link>}
+          {token && <Link to="/add-listing">Add listing</Link>}
           {token && <button className="btn ghost" onClick={e=>{ e.preventDefault(); handleSignOut(); }}>Sign out</button>}
         </div>
       </header>
@@ -81,6 +81,7 @@ export default function App(){
           <Route path="/signup" element={<Signup/>} />
           <Route path="/login" element={<Login/>} />
           <Route path="/profile" element={<Profile/>} />
+          <Route path="/add-listing" element={<Dashboard/>} />
           <Route path="/dashboard" element={<Dashboard/>} />
           <Route path="/admin-login" element={<AdminLogin/>} />
           <Route path="/listings" element={<Listings/>} />
