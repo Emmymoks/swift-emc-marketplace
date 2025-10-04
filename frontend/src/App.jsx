@@ -47,8 +47,7 @@ export default function App(){
           {/* when logged in show profile and sign out */}
           {token && <Link to="/dashboard">Profile</Link>}
           {token && <button className="btn ghost" onClick={handleSignOut} style={{marginLeft:8}}>Sign out</button>}
-          {/* Admin panel link - visible and functional */}
-          <Link to="/Adminpanel" className="admin-link">Admin</Link>
+          {/* Admin panel link intentionally hidden from nav for safety; route remains available at /Adminpanel */}
         </nav>
 
         {/* Mobile hamburger */}
@@ -68,7 +67,7 @@ export default function App(){
           {!token && <Link to="/login">Login</Link>}
           {token && <Link to="/dashboard">Profile</Link>}
           {token && <button className="btn ghost" onClick={e=>{ e.preventDefault(); handleSignOut(); }}>Sign out</button>}
-          <Link to="/Adminpanel">Admin</Link>
+          {/* Admin link hidden in mobile nav as well */}
         </div>
       </header>
 
