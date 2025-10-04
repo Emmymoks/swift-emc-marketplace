@@ -1,121 +1,94 @@
-import React, { useState, useRef, useEffect } from 'react'
-import axios from 'axios'
-import { useNavigate } from 'react-router-dom'
-import countries from '../data/countries'
+import React, { useEffect, useState } from 'react'
+import { Routes, Route, Link, useNavigate } from 'react-router-dom'
+import Home from './pages/Home'
+import Signup from './pages/Signup'
+import Login from './pages/Login'
+import Dashboard from './pages/Dashboard'
+import Profile from './pages/Profile'
+import AdminLogin from './pages/AdminLogin'
+import Listings from './pages/Listings'
+import ListingView from './pages/ListingView'
+import AdminPanel from './pages/AdminPanel'
 
-// Small helper to build flag svg urls from flagcdn
-function flagUrl(code){
-  try{ return `https://flagcdn.com/${String(code).toLowerCase()}.svg` }catch(e){ return '' }
-}
+export default function App(){
+  const [token, setToken] = useState(localStorage.getItem('token'))
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const nav = useNavigate()
 
-function SearchableCountrySelect({ value, onChange }){
-  const [open, setOpen] = useState(false)
-  const [filter, setFilter] = useState('')
-  const ref = useRef()
   useEffect(()=>{
-    function onDoc(e){ if(ref.current && !ref.current.contains(e.target)) setOpen(false) }
-    document.addEventListener('click', onDoc)
-    return ()=> document.removeEventListener('click', onDoc)
+    function onStorage(){ setToken(localStorage.getItem('token')) }
+    function onTokenChange(){ setToken(localStorage.getItem('token')) }
+    window.addEventListener('storage', onStorage)
+    window.addEventListener('tokenChange', onTokenChange)
+    return ()=> { window.removeEventListener('storage', onStorage); window.removeEventListener('tokenChange', onTokenChange) }
   },[])
-  const selected = countries.find(c=>c.code===value) || countries[0]
-  const list = countries.filter(c=> (c.name+' '+c.code).toLowerCase().includes(filter.toLowerCase()))
-  return (
-    <div className="country-picker" ref={ref}>
-      <button type="button" className="country-picker-toggle" onClick={()=>setOpen(v=>!v)}>
-        <img src={flagUrl(selected.code)} alt="flag" className="country-flag" onError={(e)=>{ e.target.style.display='none' }} />
-        <span className="country-name">{selected.name}</span>
-        <span className="chev">▾</span>
-      </button>
-      {open && (
-        <div className="picker-dropdown">
-          <input className="picker-search" placeholder="Search country..." value={filter} onChange={e=>setFilter(e.target.value)} />
-          <div className="picker-list">
-            {list.map(c=> (
-              <button key={c.code} type="button" className="country-option" onClick={()=>{ onChange(c.code); setOpen(false); setFilter('') }}>
-                <img src={flagUrl(c.code)} alt="flag" className="country-flag" onError={(e)=>{ e.target.style.display='none' }} />
-                <div style={{flex:1,textAlign:'left'}}>{c.name} <span className="muted">{c.dial}</span></div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
 
-function CountryDialSelect({ dial, onChange }){
-  const match = countries.find(c=>c.dial===dial) || countries.find(c=>c.code==='US')
-  return (
-    <div style={{display:'flex',alignItems:'center',gap:8}}>
-      <img src={flagUrl(match.code)} alt="flag" className="country-flag dial-flag" onError={(e)=>{ e.target.style.display='none' }} />
-      <select style={{width:220}} value={dial||''} onChange={e=>onChange(e.target.value)}>
-        {countries.map(c=> (<option key={c.code} value={c.dial}>{c.name} ({c.dial})</option>))}
-      </select>
-    </div>
-  )
-}
-
-const SECURITY_QUESTIONS = [
-  'What was your first school?',
-  'What is your mother\'s maiden name?',
-  'What is the name of your first pet?',
-  'What was the make of your first car?'
-]
-
-export default function Signup(){
-  const [form, setForm] = useState({ country: 'US', dial: '+1' });
-  const [loading, setLoading] = useState(false);
-  const nav = useNavigate();
-
-  function setField(k, v){ setForm(f=>({ ...f, [k]: v })) }
-
-  async function submit(e){
-    e.preventDefault();
-    setLoading(true);
-    try{
-      // compose phone from dial + number if provided separately and normalize
-      const payload = { ...form };
-      if(form.phoneNumber && form.dial){
-        const cleanDial = String(form.dial).replace(/[^+0-9]/g, '');
-        const cleanNumber = String(form.phoneNumber).replace(/[^0-9]/g, '');
-        payload.phone = `${cleanDial}${cleanNumber}`
-        // remove the temporary phoneNumber field so backend receives 'phone'
-        delete payload.phoneNumber
-      }
-      const { data } = await axios.post((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/auth/signup', payload);
-      localStorage.setItem('token', data.token);
-      nav('/dashboard');
-    }catch(err){ alert(err?.response?.data?.error || 'Error'); }
-    setLoading(false);
+  function handleSignOut(){
+    localStorage.removeItem('token')
+    setToken(null)
+    setMobileOpen(false)
+    nav('/')
   }
 
   return (
-    <form onSubmit={submit} className="page" style={{maxWidth:640}}>
-      <h3>Create account</h3>
-      <div className="form-row">
-        <div className="form-col"><input placeholder="Full name" value={form.fullName||''} onChange={e=>setField('fullName', e.target.value)} required/></div>
-        <div className="form-col">
-          <SearchableCountrySelect value={form.country} onChange={(code)=>{ const c = countries.find(x=>x.code===code); setField('country', code); if(c) setField('dial', c.dial); }} />
+    <div className="app">
+      <header className="site-header">
+        <div className="brand">
+          <div className="logo"/>
+          <div>
+            <h1 style={{fontSize:18,margin:0}}>Swift EMC Marketplace</h1>
+            <div className="muted" style={{fontSize:12}}>Modern. Fast. Secure.</div>
+          </div>
         </div>
-      </div>
 
-      <input placeholder="Username" value={form.username||''} onChange={e=>setField('username', e.target.value)} required/>
+        {/* Desktop nav (hidden on small) */}
+        <nav className="site-nav">
+          <Link to="/">Home</Link>
+          <Link to="/listings">Browse</Link>
+          {/* show signup/login only when not authenticated */}
+          {!token && <Link to="/signup">Sign up</Link>}
+          {!token && <Link to="/login">Login</Link>}
+          {/* when logged in show profile, add listing and sign out */}
+          {token && <Link to="/profile">Profile</Link>}
+          {token && <Link to="/add-listing">Add listing</Link>}
+          {token && <button className="btn ghost" onClick={handleSignOut} style={{marginLeft:8}}>Sign out</button>}
+        </nav>
 
-      <div style={{display:'flex',gap:8}}>
-        <CountryDialSelect dial={form.dial} onChange={v=>setField('dial', v)} />
-        <input placeholder="Phone number" value={form.phoneNumber||''} onChange={e=>setField('phoneNumber', e.target.value)} />
-      </div>
+        {/* Mobile hamburger */}
+        <div className="mobile-controls">
+          <button className="hamburger" aria-label="Toggle menu" onClick={()=>setMobileOpen(v=>!v)}>
+            <span className={"bar" + (mobileOpen? ' open':'')}></span>
+            <span className={"bar" + (mobileOpen? ' open':'')}></span>
+            <span className={"bar" + (mobileOpen? ' open':'')}></span>
+          </button>
+        </div>
 
-      <input placeholder="Email" type="email" value={form.email||''} onChange={e=>setField('email', e.target.value)} required/>
-      <input placeholder="Password" type="password" value={form.password||''} onChange={e=>setField('password', e.target.value)} required/>
+        {/* Mobile dropdown nav */}
+        <div className={"site-nav-mobile" + (mobileOpen? ' open':'') } onClick={()=>setMobileOpen(false)}>
+          <Link to="/">Home</Link>
+          <Link to="/listings">Browse</Link>
+          {!token && <Link to="/signup">Sign up</Link>}
+          {!token && <Link to="/login">Login</Link>}
+          {token && <Link to="/profile">Profile</Link>}
+          {token && <Link to="/add-listing">Add listing</Link>}
+          {token && <button className="btn ghost" onClick={e=>{ e.preventDefault(); handleSignOut(); }}>Sign out</button>}
+        </div>
+      </header>
 
-      <select value={form.securityQuestion||''} onChange={e=>setField('securityQuestion', e.target.value)} required>
-        <option value="">Select a security question</option>
-        {SECURITY_QUESTIONS.map(q=> <option key={q} value={q}>{q}</option>)}
-      </select>
-      <input placeholder="Security answer" value={form.securityAnswer||''} onChange={e=>setField('securityAnswer', e.target.value)} required/>
-
-      <button className="btn" type="submit" disabled={loading}>{loading? 'Creating...':'Sign up'}</button>
-    </form>
+      <main className="site-main">
+        <Routes>
+          <Route path="/" element={<Home/>} />
+          <Route path="/signup" element={<Signup/>} />
+          <Route path="/login" element={<Login/>} />
+          <Route path="/profile" element={<Profile/>} />
+          <Route path="/add-listing" element={<Dashboard/>} />
+          <Route path="/dashboard" element={<Dashboard/>} />
+          <Route path="/admin-login" element={<AdminLogin/>} />
+          <Route path="/listings" element={<Listings/>} />
+          <Route path="/listings/:id" element={<ListingView/>} />
+          <Route path="/Adminpanel" element={<AdminPanel/>} />
+        </Routes>
+      </main>
+    </div>
   )
 }
