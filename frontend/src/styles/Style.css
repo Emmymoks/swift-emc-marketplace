@@ -71,3 +71,26 @@ input:focus,select:focus,textarea:focus{box-shadow:0 4px 18px rgba(124,92,255,0.
   .site-header{flex-direction:column;align-items:flex-start}
   body{padding:12px}
 }
+
+/* Mobile nav styles */
+.mobile-controls{display:none}
+.site-nav-mobile{display:none}
+.hamburger{background:transparent;border:0;display:flex;flex-direction:column;gap:4px;padding:8px;cursor:pointer}
+.hamburger .bar{width:22px;height:2px;background:var(--muted);display:block;transition:transform .18s,opacity .18s}
+.hamburger .bar.open:nth-child(1){transform:translateY(6px) rotate(45deg)}
+.hamburger .bar.open:nth-child(2){opacity:0}
+.hamburger .bar.open:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+
+@media (max-width:720px){
+  .site-nav{display:none}
+  .mobile-controls{display:block}
+  .site-nav-mobile{display:flex;flex-direction:column;gap:8px;margin-top:12px;overflow:hidden;max-height:0;transition:max-height .28s ease,opacity .18s;opacity:0}
+  .site-nav-mobile.open{max-height:480px;opacity:1}
+  .site-nav-mobile a{padding:10px;border-radius:8px;background:transparent;color:var(--muted);text-decoration:none}
+  .site-nav-mobile .btn{width:100%}
+}
+
+/* selects and flags */
+select{appearance:none}
+select option{padding:8px}
+
