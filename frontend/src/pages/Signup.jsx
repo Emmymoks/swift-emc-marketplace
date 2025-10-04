@@ -1,7 +1,59 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
 import { useNavigate } from 'react-router-dom'
 import countries from '../data/countries'
+
+// Small helper to build flag svg urls from flagcdn
+function flagUrl(code){
+  try{ return `https://flagcdn.com/${String(code).toLowerCase()}.svg` }catch(e){ return '' }
+}
+
+function SearchableCountrySelect({ value, onChange }){
+  const [open, setOpen] = useState(false)
+  const [filter, setFilter] = useState('')
+  const ref = useRef()
+  useEffect(()=>{
+    function onDoc(e){ if(ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('click', onDoc)
+    return ()=> document.removeEventListener('click', onDoc)
+  },[])
+  const selected = countries.find(c=>c.code===value) || countries[0]
+  const list = countries.filter(c=> (c.name+' '+c.code).toLowerCase().includes(filter.toLowerCase()))
+  return (
+    <div className="country-picker" ref={ref}>
+      <button type="button" className="country-picker-toggle" onClick={()=>setOpen(v=>!v)}>
+        <img src={flagUrl(selected.code)} alt="flag" className="country-flag" onError={(e)=>{ e.target.style.display='none' }} />
+        <span className="country-name">{selected.name}</span>
+        <span className="chev">▾</span>
+      </button>
+      {open && (
+        <div className="picker-dropdown">
+          <input className="picker-search" placeholder="Search country..." value={filter} onChange={e=>setFilter(e.target.value)} />
+          <div className="picker-list">
+            {list.map(c=> (
+              <button key={c.code} type="button" className="country-option" onClick={()=>{ onChange(c.code); setOpen(false); setFilter('') }}>
+                <img src={flagUrl(c.code)} alt="flag" className="country-flag" onError={(e)=>{ e.target.style.display='none' }} />
+                <div style={{flex:1,textAlign:'left'}}>{c.name} <span className="muted">{c.dial}</span></div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CountryDialSelect({ dial, onChange }){
+  const match = countries.find(c=>c.dial===dial) || countries.find(c=>c.code==='US')
+  return (
+    <div style={{display:'flex',alignItems:'center',gap:8}}>
+      <img src={flagUrl(match.code)} alt="flag" className="country-flag dial-flag" onError={(e)=>{ e.target.style.display='none' }} />
+      <select style={{width:220}} value={dial||''} onChange={e=>onChange(e.target.value)}>
+        {countries.map(c=> (<option key={c.code} value={c.dial}>{c.name} ({c.dial})</option>))}
+      </select>
+    </div>
+  )
+}
 
 const SECURITY_QUESTIONS = [
   'What was your first school?',
@@ -43,18 +95,14 @@ export default function Signup(){
       <div className="form-row">
         <div className="form-col"><input placeholder="Full name" value={form.fullName||''} onChange={e=>setField('fullName', e.target.value)} required/></div>
         <div className="form-col">
-          <select value={form.country} onChange={e=>{ const c = countries.find(x=>x.code===e.target.value); setField('country', e.target.value); if(c) setField('dial', c.dial); }}>
-            {countries.map(c=> <option key={c.code} value={c.code}>{c.flag} {c.name}</option>)}
-          </select>
+          <SearchableCountrySelect value={form.country} onChange={(code)=>{ const c = countries.find(x=>x.code===code); setField('country', code); if(c) setField('dial', c.dial); }} />
         </div>
       </div>
 
       <input placeholder="Username" value={form.username||''} onChange={e=>setField('username', e.target.value)} required/>
 
       <div style={{display:'flex',gap:8}}>
-        <select style={{width:160}} value={form.dial||''} onChange={e=>setField('dial', e.target.value)}>
-          {countries.map(c=> (<option key={c.code} value={c.dial}>{c.flag} {c.name} ({c.dial})</option>))}
-        </select>
+        <CountryDialSelect dial={form.dial} onChange={v=>setField('dial', v)} />
         <input placeholder="Phone number" value={form.phoneNumber||''} onChange={e=>setField('phoneNumber', e.target.value)} />
       </div>
 
