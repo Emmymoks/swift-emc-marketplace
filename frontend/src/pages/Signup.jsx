@@ -43,7 +43,6 @@ export default function Signup(){
       <div className="form-row">
         <div className="form-col"><input placeholder="Full name" value={form.fullName||''} onChange={e=>setField('fullName', e.target.value)} required/></div>
         <div className="form-col">
-          <label className="sr-only">Location</label>
           <select value={form.country} onChange={e=>{ const c = countries.find(x=>x.code===e.target.value); setField('country', e.target.value); if(c) setField('dial', c.dial); }}>
             {countries.map(c=> <option key={c.code} value={c.code}>{c.flag} {c.name}</option>)}
           </select>
