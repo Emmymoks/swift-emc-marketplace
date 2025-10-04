@@ -10,11 +10,29 @@ export default function Dashboard(){
     setSubmitting(true);
     try{
       const token = localStorage.getItem('token');
-      const { data } = await axios.post((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/listings', listing, { headers: { Authorization: 'Bearer '+token } });
+      // upload any files in listing._files and replace with URLs
+      const payload = { ...listing };
+      if(listing._files && listing._files.length){
+        payload.images = payload.images || [];
+        for(const f of listing._files){
+          const fd = new FormData(); fd.append('file', f);
+          try{
+            const res = await axios.post((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+            payload.images.push(res.data.url)
+          }catch(e){ /* skip */ }
+        }
+        delete payload._files
+      }
+      const { data } = await axios.post((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/listings', payload, { headers: { Authorization: 'Bearer '+token } });
       alert('Listing created and is pending admin approval.');
       setListing({});
     }catch(err){ alert('Error creating listing'); }
     setSubmitting(false);
+  }
+
+  function onFilesChange(e){
+    const files = e.target.files ? Array.from(e.target.files) : []
+    setListing(l=>({ ...l, _files: files }))
   }
   return (
     <div className="page">
@@ -35,6 +53,9 @@ export default function Dashboard(){
         </div>
         <input placeholder="Price" type="number" value={listing.price||''} onChange={e=>setListing({...listing, price:parseFloat(e.target.value)})} />
         <textarea placeholder="Description" value={listing.description||''} onChange={e=>setListing({...listing, description:e.target.value})} />
+        <div style={{margin:'8px 0'}}>
+          <label className="btn ghost">Upload images<input type="file" accept="image/*" multiple onChange={onFilesChange} style={{display:'none'}} /></label>
+        </div>
         <button className="btn" type="submit" disabled={submitting}>{submitting? 'Creating...':'Create (Pending)'}</button>
       </form>
     </div>
