@@ -4,6 +4,8 @@ import Home from './pages/Home'
 import Signup from './pages/Signup'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
+import Profile from './pages/Profile'
+import AdminLogin from './pages/AdminLogin'
 import Listings from './pages/Listings'
 import ListingView from './pages/ListingView'
 import AdminPanel from './pages/AdminPanel'
@@ -15,8 +17,10 @@ export default function App(){
 
   useEffect(()=>{
     function onStorage(){ setToken(localStorage.getItem('token')) }
+    function onTokenChange(){ setToken(localStorage.getItem('token')) }
     window.addEventListener('storage', onStorage)
-    return ()=> window.removeEventListener('storage', onStorage)
+    window.addEventListener('tokenChange', onTokenChange)
+    return ()=> { window.removeEventListener('storage', onStorage); window.removeEventListener('tokenChange', onTokenChange) }
   },[])
 
   function handleSignOut(){
@@ -44,10 +48,10 @@ export default function App(){
           {/* show signup/login only when not authenticated */}
           {!token && <Link to="/signup">Sign up</Link>}
           {!token && <Link to="/login">Login</Link>}
-          {/* when logged in show profile and sign out */}
-          {token && <Link to="/dashboard">Profile</Link>}
+          {/* when logged in show profile, add listing and sign out */}
+          {token && <Link to="/profile">Profile</Link>}
+          {token && <Link to="/dashboard">Add listing</Link>}
           {token && <button className="btn ghost" onClick={handleSignOut} style={{marginLeft:8}}>Sign out</button>}
-          {/* Admin panel link intentionally hidden from nav for safety; route remains available at /Adminpanel */}
         </nav>
 
         {/* Mobile hamburger */}
@@ -65,9 +69,9 @@ export default function App(){
           <Link to="/listings">Browse</Link>
           {!token && <Link to="/signup">Sign up</Link>}
           {!token && <Link to="/login">Login</Link>}
-          {token && <Link to="/dashboard">Profile</Link>}
+          {token && <Link to="/profile">Profile</Link>}
+          {token && <Link to="/dashboard">Add listing</Link>}
           {token && <button className="btn ghost" onClick={e=>{ e.preventDefault(); handleSignOut(); }}>Sign out</button>}
-          {/* Admin link hidden in mobile nav as well */}
         </div>
       </header>
 
@@ -76,7 +80,9 @@ export default function App(){
           <Route path="/" element={<Home/>} />
           <Route path="/signup" element={<Signup/>} />
           <Route path="/login" element={<Login/>} />
+          <Route path="/profile" element={<Profile/>} />
           <Route path="/dashboard" element={<Dashboard/>} />
+          <Route path="/admin-login" element={<AdminLogin/>} />
           <Route path="/listings" element={<Listings/>} />
           <Route path="/listings/:id" element={<ListingView/>} />
           <Route path="/Adminpanel" element={<AdminPanel/>} />
