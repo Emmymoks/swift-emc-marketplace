@@ -8,6 +8,8 @@ const authRoutes = require('./routes/auth');
 const listingRoutes = require('./routes/listings');
 const messageRoutes = require('./routes/messages');
 const adminRoutes = require('./routes/admin');
+const multer = require('multer');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
@@ -39,6 +41,22 @@ app.use('/api/auth', authRoutes);
 app.use('/api/listings', listingRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/admin', adminRoutes);
+
+// uploads
+const uploadDir = path.join(__dirname, 'uploads');
+const fs = require('fs');
+// ensure upload directory exists
+try{ fs.mkdirSync(uploadDir, { recursive: true }) }catch(e){}
+const storage = multer.diskStorage({ destination: uploadDir, filename: (req, file, cb) => { cb(null, Date.now() + '-' + file.originalname.replace(/[^a-z0-9\.\-]/gi,'_')) } });
+const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
+app.post('/api/upload', upload.single('file'), (req, res) => {
+  if(!req.file) return res.status(400).json({ error: 'No file' });
+  const url = '/' + path.relative(__dirname, req.file.path).replace(/\\/g, '/');
+  res.json({ ok: true, url });
+});
+
+// serve uploads statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // serve healthcheck
 app.get('/', (req, res) => {
