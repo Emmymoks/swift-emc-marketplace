@@ -29,6 +29,23 @@ export default function Profile(){
     setLoading(false)
   }
 
+  async function uploadFile(file){
+    if(!file) return null
+    const fd = new FormData(); fd.append('file', file)
+    const res = await axios.post((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+    return res.data.url
+  }
+
+  async function onSelectFile(e){
+    const f = e.target.files && e.target.files[0]
+    if(!f) return
+    try{
+      const url = await uploadFile(f)
+      setEdit({...edit, profilePhotoUrl: url})
+      // optionally auto-save
+    }catch(e){ alert('Upload failed') }
+  }
+
   async function recoverPassword(){
     const identifier = prompt('Enter your email or username to recover')
     if(!identifier) return
@@ -51,6 +68,12 @@ export default function Profile(){
       <h2>Your profile</h2>
       <div style={{display:'flex',gap:12,alignItems:'center'}}>
         <img src={me.profilePhotoUrl||'https://via.placeholder.com/96'} alt="avatar" style={{width:96,height:96,borderRadius:12,objectFit:'cover'}}/>
+        <div>
+          <label className="btn ghost" style={{display:'inline-block'}}>
+            Change photo
+            <input type="file" accept="image/*" onChange={onSelectFile} style={{display:'none'}} />
+          </label>
+        </div>
         <div style={{flex:1}}>
           <div style={{fontWeight:700}}>{me.fullName}</div>
           <div className="muted">{me.email}</div>
