@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { io as ioClient } from 'socket.io-client'
 import axios from 'axios'
 
 export default function AdminPanel(){
@@ -13,6 +14,8 @@ export default function AdminPanel(){
   const [messages, setMessages] = useState([]);
   const [msgRoom, setMsgRoom] = useState('');
   const [msgText, setMsgText] = useState('');
+  const [socket, setSocket] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const nav = useNavigate()
 
@@ -20,6 +23,23 @@ export default function AdminPanel(){
     // if admin secret not present, redirect to admin login
     const s = sessionStorage.getItem('admin_secret') || '';
     if (!s) nav('/admin-login');
+    // setup socket
+    try{
+      const sc = ioClient(import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/^http/, 'ws') : undefined);
+      setSocket(sc);
+      sc.on('admin:newMessage', (m)=>{
+        // if the message belongs to the currently loaded room, append it
+        setMessages(curr => {
+          if (!m) return curr;
+          setUnreadCount(c=>c+1)
+          return [...curr, m];
+        });
+      });
+      sc.on('admin:user:signup', (payload)=>{
+        setAnalytics(a=> ({ ...(a||{}), totalUsers: payload.totalUsers }))
+      });
+    }catch(e){ }
+    return ()=>{ if(socket) socket.disconnect(); }
   },[])
 
   async function loadPending(){
@@ -143,10 +163,10 @@ export default function AdminPanel(){
             </div>
           )}
 
-          <h4 style={{marginTop:12}}>Messages / complaints</h4>
+          <h4 style={{marginTop:12}}>Messages / complaints {unreadCount>0 && <span style={{background:'var(--accent)',color:'#fff',borderRadius:12,padding:'2px 8px',fontSize:12,marginLeft:8}}>{unreadCount}</span>}</h4>
           <div style={{display:'flex',gap:8}}>
             <input placeholder="roomId" value={msgRoom} onChange={e=>setMsgRoom(e.target.value)} />
-            <button className="btn" onClick={loadMessages}>Load</button>
+            <button className="btn" onClick={()=>{ loadMessages(); setUnreadCount(0); }}>Load</button>
           </div>
           <div style={{maxHeight:220,overflow:'auto',marginTop:8}}>
             {messages.length===0 && <div className="muted">No messages loaded</div>}
