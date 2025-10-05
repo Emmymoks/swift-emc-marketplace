@@ -46,6 +46,17 @@ export default function AdminPanel(){
     return ()=>{ try{ if(sc) sc.disconnect(); }catch(e){} }
   },[])
 
+  // load inbox from server (existing conversations)
+  async function loadInbox(){
+    try{
+      const res = await axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/recent-messages', { headers: { 'x-admin-secret': secret } });
+      const rooms = res.data.rooms || [];
+      setInbox(rooms.map(r=> ({ roomId: r.roomId, text: r.lastMessage.text, from: r.lastMessage.from })));
+    }catch(e){ /* ignore */ }
+  }
+
+  useEffect(()=>{ loadInbox() }, [])
+
   async function loadPending(){
     setError('');
     setLoading(true);
