@@ -16,6 +16,14 @@ router.post('/signup', async (req, res) => {
     const saHash = securityAnswer ? await bcrypt.hash(securityAnswer, 10) : null;
     const user = new User({ fullName, username, email, phone, location, passwordHash: pwHash, securityQuestion, securityAnswerHash: saHash });
     await user.save();
+    // notify admins about new signup (for realtime analytics)
+    try{
+      const io = req.app && req.app.locals && req.app.locals.io;
+      if (io) {
+        const totalUsers = await User.countDocuments();
+        io.emit('admin:user:signup', { totalUsers, user: { id: user._id, username: user.username } });
+      }
+    }catch(e){ /* ignore emit errors */ }
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'dev_secret', { expiresIn: '7d' });
     res.json({ token, user: { id: user._id, username: user.username, email: user.email } });
   } catch (err) {
