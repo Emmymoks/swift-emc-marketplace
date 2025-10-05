@@ -12,6 +12,7 @@ export default function AdminPanel(){
   const [searchUsername, setSearchUsername] = useState('');
   const [searchResult, setSearchResult] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [inbox, setInbox] = useState([]);
   const [msgRoom, setMsgRoom] = useState('');
   const [msgText, setMsgText] = useState('');
   const [socket, setSocket] = useState(null);
@@ -25,15 +26,18 @@ export default function AdminPanel(){
     if (!s) nav('/admin-login');
     // setup socket
     try{
-      const sc = ioClient(import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/^http/, 'ws') : undefined);
+  const sc = ioClient(import.meta.env.VITE_API_URL || undefined);
       setSocket(sc);
       sc.on('admin:newMessage', (m)=>{
-        // if the message belongs to the currently loaded room, append it
-        setMessages(curr => {
-          if (!m) return curr;
-          setUnreadCount(c=>c+1)
-          return [...curr, m];
+        if(!m) return;
+        // add to inbox (dedupe by roomId, keep latest message preview)
+        setInbox(curr => {
+          const other = curr.filter(i=>i.roomId!==m.roomId);
+          return [{ roomId: m.roomId, text: m.text, from: m.from }, ...other].slice(0,50);
         });
+        setUnreadCount(c=>c+1);
+        // if admin currently viewing this room, append to messages list
+        setMessages(curr => (m.roomId === msgRoom ? [...curr, m] : curr));
       });
       sc.on('admin:user:signup', (payload)=>{
         setAnalytics(a=> ({ ...(a||{}), totalUsers: payload.totalUsers }))
@@ -102,7 +106,10 @@ export default function AdminPanel(){
   async function replyMessage(){
     if (!msgRoom || !msgText) return;
     try{
-      const res = await axios.post((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/messages/reply', { roomId: msgRoom, toId: messages[0] ? (messages[0].from?._id || messages[0].to?._id) : null, text: msgText }, { headers: { 'x-admin-secret': secret } });
+      // determine reply target: pick last non-null 'from' user in messages for the room
+      const target = messages.slice().reverse().find(m=>m.from && m.from._id) || messages[0]
+      const toId = target ? (target.from?._id || target.to?._id) : null
+      const res = await axios.post((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/messages/reply', { roomId: msgRoom, toId, text: msgText }, { headers: { 'x-admin-secret': secret } });
       // append locally
       setMessages(m=>[...m, res.data.msg]);
       setMsgText('');
@@ -165,8 +172,18 @@ export default function AdminPanel(){
 
           <h4 style={{marginTop:12}}>Messages / complaints {unreadCount>0 && <span style={{background:'var(--accent)',color:'#fff',borderRadius:12,padding:'2px 8px',fontSize:12,marginLeft:8}}>{unreadCount}</span>}</h4>
           <div style={{display:'flex',gap:8}}>
-            <input placeholder="roomId" value={msgRoom} onChange={e=>setMsgRoom(e.target.value)} />
-            <button className="btn" onClick={()=>{ loadMessages(); setUnreadCount(0); }}>Load</button>
+            <div style={{flex:1}}>
+              <div style={{fontSize:13,fontWeight:700}}>Inbox</div>
+              <div style={{maxHeight:120,overflow:'auto',marginTop:8}}>
+                {inbox.length===0 && <div className="muted">No messages</div>}
+                {inbox.map(i=> (
+                  <div key={i.roomId} className="card" style={{marginBottom:6,cursor:'pointer'}} onClick={()=>{ setMsgRoom(i.roomId); loadMessages(); setUnreadCount(0); }}>
+                    <div style={{fontWeight:700}}>{i.from?.username || 'User'}</div>
+                    <div className="muted">{i.text}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
           <div style={{maxHeight:220,overflow:'auto',marginTop:8}}>
             {messages.length===0 && <div className="muted">No messages loaded</div>}
