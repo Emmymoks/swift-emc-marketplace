@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Routes, Route, Link, useNavigate } from 'react-router-dom'
+import { Routes, Route, Link, useNavigate, Navigate } from 'react-router-dom'
 import Home from './pages/Home'
 import Signup from './pages/Signup'
 import Login from './pages/Login'
@@ -98,7 +98,7 @@ export default function App(){
           <Route path="/admin-login" element={<AdminLogin/>} />
           <Route path="/listings" element={<Listings/>} />
           <Route path="/listings/:id" element={<ListingView/>} />
-          <Route path="/Adminpanel" element={<AdminPanel/>} />
+          <Route path="/Adminpanel" element={isAdmin ? <AdminPanel/> : <Navigate to="/admin-login" replace />} />
         </Routes>
       </main>
     </div>
