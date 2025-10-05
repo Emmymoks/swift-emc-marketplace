@@ -24,6 +24,8 @@ router.post('/', async (req, res) => {
     // broadcast via socket if available
     const io = req.app.locals.io;
     if (io) io.to(roomId).emit('newMessage', msg);
+  // also notify admins globally so admin panels can show incoming messages
+  if (io) io.emit('admin:newMessage', msg);
     res.json({ ok: true, msg });
   } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
