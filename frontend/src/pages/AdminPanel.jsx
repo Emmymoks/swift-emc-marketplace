@@ -3,19 +3,25 @@ import axios from 'axios'
 
 export default function AdminPanel(){
   const [pending, setPending] = useState([]);
-  const [secret, setSecret] = useState('');
+  const [secret, setSecret] = useState(()=> sessionStorage.getItem('admin_secret') || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [analytics, setAnalytics] = useState(null);
+  const [searchUsername, setSearchUsername] = useState('');
+  const [searchResult, setSearchResult] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [msgRoom, setMsgRoom] = useState('');
+  const [msgText, setMsgText] = useState('');
 
-  async function loadPending(s){
+  async function loadPending(){
     setError('');
     setLoading(true);
     try{
-      const secretToUse = s || sessionStorage.getItem('admin_secret') || '';
-      const res = await axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/listings', { params:{ secret: secretToUse }, headers: { 'x-admin-secret': secretToUse } });
+      const secretToUse = secret;
+      const res = await axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/listings', { headers: { 'x-admin-secret': secretToUse } });
       setPending(res.data.pending || []);
     }catch(e){
-      setError('Failed to load admin data. Check secret and server.');
+      setError('Failed to load pending listings.');
       setPending([]);
     }finally{ setLoading(false); }
   }
@@ -35,33 +41,117 @@ export default function AdminPanel(){
     }catch(e){ alert('Reject failed'); }
   }
 
+  async function loadAnalytics(){
+    setLoading(true);
+    try{
+      const res = await axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/analytics', { headers: { 'x-admin-secret': secret } });
+      setAnalytics(res.data);
+    }catch(err){ setError('Failed to load analytics'); }
+    setLoading(false);
+  }
+
+  async function searchUser(){
+    if (!searchUsername) return;
+    setLoading(true); setSearchResult(null);
+    try{
+      const res = await axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/users', { params: { username: searchUsername }, headers: { 'x-admin-secret': secret } });
+      setSearchResult(res.data);
+    }catch(err){ setError('User not found or search failed'); }
+    setLoading(false);
+  }
+
+  async function loadMessages(){
+    if (!msgRoom) return setError('Enter roomId to load messages');
+    setLoading(true);
+    try{
+      const res = await axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/messages', { params: { roomId: msgRoom }, headers: { 'x-admin-secret': secret } });
+      setMessages(res.data.msgs || []);
+    }catch(err){ setError('Failed to load messages'); }
+    setLoading(false);
+  }
+
+  async function replyMessage(){
+    if (!msgRoom || !msgText) return;
+    try{
+      const res = await axios.post((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/messages/reply', { roomId: msgRoom, toId: messages[0] ? (messages[0].from?._id || messages[0].to?._id) : null, text: msgText }, { headers: { 'x-admin-secret': secret } });
+      // append locally
+      setMessages(m=>[...m, res.data.msg]);
+      setMsgText('');
+    }catch(err){ alert('Send failed'); }
+  }
+
   return (
     <div className="page">
       <h2>Admin Panel</h2>
-      <p className="muted">This page is hidden from the main nav. Enter your admin secret to load pending listings.</p>
-      <div style={{maxWidth:480}}>
-        <input placeholder="Admin secret" type="password" value={secret} onChange={e=>setSecret(e.target.value)} />
-        <div style={{display:'flex',gap:8}}>
-          <button className="btn" onClick={()=>loadPending(secret)} disabled={!secret || loading}>{loading? 'Loading...':'Load pending'}</button>
-          <button className="btn ghost" onClick={()=>{ setSecret(''); setPending([]); }}>Clear</button>
-        </div>
-        {error && <div style={{color:'var(--danger)',marginTop:8}}>{error}</div>}
-      </div>
-
-      <div style={{marginTop:20}}>
-        <h3>Pending listings</h3>
-        <div className="grid listings-grid">
-          {pending.length===0 && <div className="muted">No pending listings</div>}
-          {pending.map(l=> (
-            <div key={l._id} className="card">
-              <h4>{l.title}</h4>
-              <p className="muted">{l.description}</p>
-              <div className="admin-controls">
-                <button className="btn" onClick={()=>approve(l._id)}>Approve</button>
-                <button className="btn danger" onClick={()=>reject(l._id)}>Reject</button>
+      <div style={{display:'flex',gap:16,alignItems:'center'}}>
+        <div style={{flex:1}}>
+          <h4>Pending listings</h4>
+          <div style={{marginBottom:8}}>
+            <button className="btn" onClick={loadPending} disabled={loading}>{loading? 'Loading...':'Refresh pending'}</button>
+            <button className="btn ghost" onClick={()=>setPending([])} style={{marginLeft:8}}>Clear list</button>
+            <button className="btn" onClick={loadAnalytics} style={{marginLeft:8}}>Load analytics</button>
+          </div>
+          {error && <div style={{color:'var(--danger)',marginTop:8}}>{error}</div>}
+          <div className="grid listings-grid">
+            {pending.length===0 && <div className="muted">No pending listings</div>}
+            {pending.map(l=> (
+              <div key={l._id} className="card">
+                <h4>{l.title}</h4>
+                <p className="muted">{l.description}</p>
+                <div className="admin-controls">
+                  <button className="btn" onClick={()=>approve(l._id)}>Approve</button>
+                  <button className="btn danger" onClick={()=>reject(l._id)}>Reject</button>
+                </div>
               </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{width:360}}>
+          <h4>Site analytics</h4>
+          {analytics ? (
+            <div className="card">
+              <div>Total users: {analytics.totalUsers}</div>
+              <div>Total listings: {analytics.totalListings}</div>
+              <div>Pending listings: {analytics.pendingListings}</div>
+              <div>Total messages: {analytics.totalMessages}</div>
+              <div>Uptime (s): {Math.round(analytics.uptime)}</div>
             </div>
-          ))}
+          ) : <div className="muted">No analytics loaded</div>}
+
+          <h4 style={{marginTop:12}}>Search user</h4>
+          <div style={{display:'flex',gap:8}}>
+            <input placeholder="username" value={searchUsername} onChange={e=>setSearchUsername(e.target.value)} />
+            <button className="btn" onClick={searchUser}>Search</button>
+          </div>
+          {searchResult && (
+            <div className="card" style={{marginTop:8}}>
+              <div><strong>{searchResult.user.username}</strong> ({searchResult.user.email})</div>
+              <div>{searchResult.user.fullName}</div>
+              <div style={{marginTop:8}}><strong>Listings</strong></div>
+              {searchResult.listings.length===0 && <div className="muted">No listings</div>}
+              {searchResult.listings.map(l=> <div key={l._id} className="muted">{l.title} - {l.approved? 'approved':'pending'}</div>)}
+            </div>
+          )}
+
+          <h4 style={{marginTop:12}}>Messages / complaints</h4>
+          <div style={{display:'flex',gap:8}}>
+            <input placeholder="roomId" value={msgRoom} onChange={e=>setMsgRoom(e.target.value)} />
+            <button className="btn" onClick={loadMessages}>Load</button>
+          </div>
+          <div style={{maxHeight:220,overflow:'auto',marginTop:8}}>
+            {messages.length===0 && <div className="muted">No messages loaded</div>}
+            {messages.map(m=> (
+              <div key={m._id} className="card" style={{marginBottom:6}}>
+                <div style={{fontSize:13}}><strong>{m.from?.username || 'Admin'}</strong> → <em>{m.to?.username || 'User'}</em></div>
+                <div className="muted">{m.text}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{display:'flex',gap:8,marginTop:8}}>
+            <input placeholder="Reply text" value={msgText} onChange={e=>setMsgText(e.target.value)} />
+            <button className="btn" onClick={replyMessage}>Send</button>
+          </div>
         </div>
       </div>
     </div>
