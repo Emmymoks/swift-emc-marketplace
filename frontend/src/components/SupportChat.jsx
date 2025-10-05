@@ -9,6 +9,7 @@ export default function SupportChat({ user }) {
   const [text, setText] = useState('')
   const socketRef = useRef(null)
   const mounted = useRef(true)
+  const [unread, setUnread] = useState(0)
 
   const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
   const wsUrl = baseUrl.replace(/^http/, 'ws')
@@ -41,7 +42,18 @@ export default function SupportChat({ user }) {
     s.on('newMessage', (msg) => {
       if (!mounted.current || !msg) return
       if (msg.roomId === roomId) {
-        setMsgs((cur) => [...cur, msg])
+        // avoid duplicates: only append if id not present
+        setMsgs((cur) => {
+          if (cur.find(x => x._id && msg._id && x._id === msg._id)) return cur
+          return [...cur, msg]
+        })
+        // if message is from admin (from === null) and chat closed, mark unread
+        if ((!msg.from || msg.from === null) && !open) {
+          const key = `unread:${roomId}`
+          const cur = parseInt(localStorage.getItem(key) || '0', 10) || 0
+          localStorage.setItem(key, String(cur + 1))
+          setUnread(cur + 1)
+        }
       }
     })
 
@@ -54,6 +66,10 @@ export default function SupportChat({ user }) {
         })
         if (active && mounted.current) {
           setMsgs(res.data.msgs || [])
+          // initialize unread count from localStorage
+          const key = `unread:${roomId}`
+          const cur = parseInt(localStorage.getItem(key) || '0', 10) || 0
+          setUnread(cur)
         }
       } catch (e) {
         console.warn('Failed to load chat history', e)
@@ -74,15 +90,13 @@ export default function SupportChat({ user }) {
     if (!text.trim() || !roomId) return
     try {
       const token = localStorage.getItem('token')
-      const res = await axios.post(
+      await axios.post(
         `${baseUrl}/api/messages`,
         { roomId, toId: null, text: text.trim() },
         { headers: { Authorization: 'Bearer ' + token } }
       )
-      if (mounted.current) {
-        setMsgs((m) => [...m, res.data.msg])
-        setText('')
-      }
+      // do not append locally; socket will deliver the newMessage event to this client
+      if (mounted.current) setText('')
     } catch (e) {
       alert('Failed to send message. Please try again.')
     }
@@ -112,10 +126,10 @@ export default function SupportChat({ user }) {
             borderBottom: '1px solid #eee',
           }}
         >
-          <div style={{ fontWeight: 700 }}>Customer Support</div>
+          <div style={{ fontWeight: 700 }}>Customer Support {unread>0 && <span style={{background:'var(--danger)',color:'#fff',borderRadius:12,padding:'2px 8px',fontSize:12,marginLeft:8}}>{unread}</span>}</div>
           <button
             className="btn ghost"
-            onClick={() => setOpen((o) => !o)}
+            onClick={() => { const next = !open; setOpen(next); if(next){ /* clear unread */ const key = `unread:${roomId}`; localStorage.setItem(key,'0'); setUnread(0); } }}
             style={{ fontSize: 18, fontWeight: 600, lineHeight: 1 }}
           >
             {open ? '−' : '+'}
@@ -145,21 +159,21 @@ export default function SupportChat({ user }) {
                     key={m._id || Math.random()}
                     style={{
                       marginBottom: 8,
-                      textAlign: m.from && m.from._id === user._id ? 'right' : 'left',
+                      textAlign: m.from && m.from._id === user._id ? 'right' : (!m.from ? 'left' : 'left'),
                     }}
                   >
                     <div
                       style={{
                         display: 'inline-block',
-                        background:
-                          m.from && m.from._id === user._id ? '#007bff' : '#f0f0f0',
-                        color: m.from && m.from._id === user._id ? '#fff' : '#333',
+                        background: m.from && m.from._id === user._id ? '#007bff' : (!m.from ? 'linear-gradient(90deg,#f43f5e,#f97316)' : '#f0f0f0'),
+                        color: m.from && m.from._id === user._id ? '#fff' : (!m.from ? '#fff' : '#333'),
                         padding: '6px 10px',
                         borderRadius: 12,
                         maxWidth: '80%',
                         wordBreak: 'break-word',
                       }}
                     >
+                      {(!m.from || m.from === null) && <div style={{fontSize:11,fontWeight:700,marginBottom:6}}>Admin</div>}
                       {m.text}
                     </div>
                   </div>
