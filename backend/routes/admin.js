@@ -95,6 +95,27 @@ router.get('/messages', adminAuth, async (req, res) => {
   res.json({ msgs });
 });
 
+// recent message rooms: returns recent rooms with last message and count
+router.get('/recent-messages', adminAuth, async (req, res) => {
+  try {
+    // get distinct roomIds
+    const rooms = await Message.distinct('roomId');
+    // for each room, get last message and count
+    const results = [];
+    for (const roomId of rooms) {
+      const last = await Message.findOne({ roomId }).sort({ createdAt: -1 }).populate('from', 'username').populate('to', 'username');
+      const count = await Message.countDocuments({ roomId });
+      if (last) results.push({ roomId, lastMessage: last, count });
+    }
+    // sort by lastMessage.createdAt desc
+    results.sort((a,b)=> new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt));
+    res.json({ rooms: results });
+  } catch (err) {
+    console.error('recent-messages error', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Admin send reply
 router.post('/messages/reply', adminAuth, async (req, res) => {
   const { roomId, toId, text, listing } = req.body;
