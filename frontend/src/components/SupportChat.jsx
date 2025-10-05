@@ -20,7 +20,7 @@ export default function SupportChat({ user }){
     // load existing
     (async ()=>{
       try{
-        const res = await axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/messages/' + roomId)
+  const res = await axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/messages/' + encodeURIComponent(roomId))
         setMsgs(res.data.msgs || [])
       }catch(e){}
     })()
