@@ -7,15 +7,15 @@ export default function SupportChat({ user }){
   const [msgs, setMsgs] = useState([])
   const [text, setText] = useState('')
   const socketRef = useRef(null)
-  const roomId = user ? `support:${user.id}` : null
+  const roomId = user ? `support:${user.id || user._id}` : null
 
   useEffect(()=>{
     if(!roomId) return
     const s = ioClient(import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/^http/, 'ws') : undefined)
     socketRef.current = s
     s.on('connect', ()=>{})
-    s.on('newMessage', (m)=>{
-      if(m && m.roomId === roomId) setMsgs(m => [...m, m])
+    s.on('newMessage', (msg)=>{
+      if(msg && msg.roomId === roomId) setMsgs(cur => [...cur, msg])
     })
     // load existing
     (async ()=>{
