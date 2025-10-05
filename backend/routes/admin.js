@@ -102,6 +102,7 @@ router.post('/messages/reply', adminAuth, async (req, res) => {
     return res.status(400).json({ error: 'Missing fields' });
   const msg = new Message({
     roomId,
+    // mark admin as a pseudo-sender; from:null was used previously but some clients expect a 'from' object
     from: null,
     to: toId,
     text,
@@ -109,7 +110,10 @@ router.post('/messages/reply', adminAuth, async (req, res) => {
   });
   await msg.save();
   const io = req.app.locals.io;
-  if (io) io.to(roomId).emit('newMessage', msg);
+  if (io) {
+    io.to(roomId).emit('newMessage', msg);
+    io.emit('admin:newMessage', msg);
+  }
   res.json({ ok: true, msg });
 });
 
