@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
 export default function AdminPanel(){
@@ -12,6 +13,14 @@ export default function AdminPanel(){
   const [messages, setMessages] = useState([]);
   const [msgRoom, setMsgRoom] = useState('');
   const [msgText, setMsgText] = useState('');
+
+  const nav = useNavigate()
+
+  useEffect(()=>{
+    // if admin secret not present, redirect to admin login
+    const s = sessionStorage.getItem('admin_secret') || '';
+    if (!s) nav('/admin-login');
+  },[])
 
   async function loadPending(){
     setError('');
