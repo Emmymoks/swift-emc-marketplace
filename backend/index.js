@@ -51,7 +51,10 @@ const storage = multer.diskStorage({ destination: uploadDir, filename: (req, fil
 const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 app.post('/api/upload', upload.single('file'), (req, res) => {
   if(!req.file) return res.status(400).json({ error: 'No file' });
-  const url = '/' + path.relative(__dirname, req.file.path).replace(/\\/g, '/');
+  // return an absolute URL pointing to this server so frontend can load the image
+  const rel = path.relative(__dirname, req.file.path).replace(/\\/g, '/');
+  const host = req.protocol + '://' + req.get('host');
+  const url = host + '/' + rel;
   res.json({ ok: true, url });
 });
 
