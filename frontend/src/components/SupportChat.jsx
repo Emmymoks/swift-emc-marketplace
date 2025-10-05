@@ -91,7 +91,7 @@ export default function SupportChat({ user }) {
   if (!user) return null
 
   return (
-    <div style={{ position: 'fixed', right: 20, bottom: 20, width: 320, zIndex: 9999 }}>
+    <div className="chat-box" style={{ position: 'fixed', right: 20, bottom: 20, width: 320, zIndex: 9999 }}>
       <div
         style={{
           background: '#fff',
