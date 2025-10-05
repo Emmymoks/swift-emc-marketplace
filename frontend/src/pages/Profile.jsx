@@ -200,13 +200,7 @@ export default function Profile() {
             value={edit.location || ''}
             onChange={(e) => setEdit({ ...edit, location: e.target.value })}
           />
-          <input
-            placeholder="Profile photo URL"
-            value={edit.profilePhotoUrl || ''}
-            onChange={(e) =>
-              setEdit({ ...edit, profilePhotoUrl: e.target.value })
-            }
-          />
+          {/* profile photo is handled via the Change photo button above; hide raw URL input */}
           <textarea
             placeholder="Bio"
             value={edit.bio || ''}
