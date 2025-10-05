@@ -1,23 +1,32 @@
+// frontend/src/pages/Profile.jsx
 import React, { useEffect, useState } from 'react'
 import axios from 'axios'
-// SupportChat is dynamically imported to avoid runtime errors breaking the Profile page
-// (some environments may throw when socket.io-client is initialized during render)
-let SupportChat = null
 
+// Profile page
 export default function Profile(){
   const [me, setMe] = useState(null)
   const [edit, setEdit] = useState({})
   const [loading, setLoading] = useState(false)
 
   useEffect(()=>{ load() }, [])
+
   async function load(){
     try{
       const token = localStorage.getItem('token')
       if(!token) return
       const { data } = await axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/auth/profile', { headers: { Authorization: 'Bearer '+token } })
       setMe(data.user)
-      setEdit({ fullName: data.user.fullName, email: data.user.email, phone: data.user.phone, location: data.user.location, bio: data.user.bio, profilePhotoUrl: data.user.profilePhotoUrl })
-    }catch(e){ }
+      setEdit({
+        fullName: data.user.fullName || '',
+        email: data.user.email || '',
+        phone: data.user.phone || '',
+        location: data.user.location || '',
+        bio: data.user.bio || '',
+        profilePhotoUrl: data.user.profilePhotoUrl || ''
+      })
+    }catch(e){
+      // optional: console.error(e)
+    }
   }
 
   async function save(e){
@@ -66,16 +75,18 @@ export default function Profile(){
     }catch(e){ alert('Recover failed') }
   }
 
-  if(!me) return <div className="page">Please log in to view your profile.</div>
-
   // dynamically load SupportChat after profile is present to avoid any runtime errors
   const [SupportChatComponent, setSupportChatComponent] = React.useState(null)
   useEffect(()=>{
     let mounted = true
     if (!me) return
-    import('../components/SupportChat').then(mod=>{ if(mounted) setSupportChatComponent(()=>mod.default) }).catch(()=>{ /* ignore */ })
+    import('../components/SupportChat').then(mod=>{
+      if(mounted) setSupportChatComponent(()=>mod.default)
+    }).catch(()=>{ /* ignore import errors silently */ })
     return ()=>{ mounted = false }
   },[me])
+
+  if(!me) return <div className="page">Please log in to view your profile.</div>
 
   return (
     <>
@@ -108,7 +119,7 @@ export default function Profile(){
         </div>
       </form>
     </div>
-  {SupportChatComponent ? <SupportChatComponent user={me} /> : null}
+    {SupportChatComponent ? <SupportChatComponent user={me} /> : null}
     </>
   )
 }
