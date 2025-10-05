@@ -39,7 +39,7 @@ export default function AdminPanel(){
         setAnalytics(a=> ({ ...(a||{}), totalUsers: payload.totalUsers }))
       });
     }catch(e){ }
-    return ()=>{ if(socket) socket.disconnect(); }
+    return ()=>{ try{ if(sc) sc.disconnect(); }catch(e){} }
   },[])
 
   async function loadPending(){
