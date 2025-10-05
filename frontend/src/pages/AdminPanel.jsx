@@ -31,10 +31,14 @@ export default function AdminPanel(){
       sc.on('admin:newMessage', (m)=>{
         if(!m) return;
         // add to inbox (dedupe by roomId, keep latest message preview)
-        setInbox(curr => {
-          const other = curr.filter(i=>i.roomId!==m.roomId);
-          return [{ roomId: m.roomId, text: m.text, from: m.from }, ...other].slice(0,50);
-        });
+          setInbox(curr => {
+            const other = curr.filter(i=>i.roomId!==m.roomId);
+            // update unread count in localStorage
+            const key = `admin:unread:${m.roomId}`
+            const cur = parseInt(localStorage.getItem(key) || '0', 10) || 0
+            localStorage.setItem(key, String(cur+1))
+            return [{ roomId: m.roomId, text: m.text, from: m.from, unread: cur+1 }, ...other].slice(0,50);
+          });
         setUnreadCount(c=>c+1);
         // if admin currently viewing this room, append to messages list
         setMessages(curr => (m.roomId === msgRoom ? [...curr, m] : curr));
@@ -51,7 +55,7 @@ export default function AdminPanel(){
     try{
       const res = await axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/recent-messages', { headers: { 'x-admin-secret': secret } });
       const rooms = res.data.rooms || [];
-      setInbox(rooms.map(r=> ({ roomId: r.roomId, text: r.lastMessage.text, from: r.lastMessage.from })));
+      setInbox(rooms.map(r=> ({ roomId: r.roomId, text: r.lastMessage.text, from: r.lastMessage.from, unread: parseInt(localStorage.getItem('admin:unread:'+r.roomId)||'0',10)||0 })));
     }catch(e){ /* ignore */ }
   }
 
@@ -110,6 +114,8 @@ export default function AdminPanel(){
     try{
       const res = await axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/messages', { params: { roomId: msgRoom }, headers: { 'x-admin-secret': secret } });
       setMessages(res.data.msgs || []);
+      // clear unread for this room
+      try{ localStorage.setItem('admin:unread:'+msgRoom, '0'); setInbox(curr=>curr.map(i=> i.roomId===msgRoom? {...i, unread:0}: i)); setUnreadCount(0); }catch(e){}
     }catch(err){ setError('Failed to load messages'); }
     setLoading(false);
   }
@@ -188,9 +194,12 @@ export default function AdminPanel(){
               <div style={{maxHeight:120,overflow:'auto',marginTop:8}}>
                 {inbox.length===0 && <div className="muted">No messages</div>}
                 {inbox.map(i=> (
-                  <div key={i.roomId} className="card" style={{marginBottom:6,cursor:'pointer'}} onClick={()=>{ setMsgRoom(i.roomId); loadMessages(); setUnreadCount(0); }}>
-                    <div style={{fontWeight:700}}>{i.from?.username || 'User'}</div>
-                    <div className="muted">{i.text}</div>
+                  <div key={i.roomId} className="card" style={{marginBottom:6,cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'}} onClick={()=>{ setMsgRoom(i.roomId); loadMessages(); setUnreadCount(0); }}>
+                    <div>
+                      <div style={{fontWeight:700}}>{i.from?.username || 'User'}</div>
+                      <div className="muted">{i.text}</div>
+                    </div>
+                    {i.unread>0 && <div style={{background:'var(--danger)',color:'#fff',borderRadius:12,padding:'6px 10px',fontSize:12}}>{i.unread}</div>}
                   </div>
                 ))}
               </div>
