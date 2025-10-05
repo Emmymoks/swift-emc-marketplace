@@ -25,7 +25,7 @@ export default function AdminLogin(){
       <h3>Admin login</h3>
       <input placeholder="Admin email" type="email" value={email} onChange={e=>setEmail(e.target.value)} required/>
       <input placeholder="Admin password" type="password" value={secret} onChange={e=>setSecret(e.target.value)} required/>
-      <div style={{marginTop:8,fontSize:13}} className="muted">Use the ADMIN_EMAIL and ADMIN_PASSWORD from your server .env.</div>
+      <div style={{marginTop:8,fontSize:13}} className="muted">Enter ADMIN_EMAIL and ADMIN_PASSWORD </div>
       <button className="btn" type="submit" disabled={loading}>{loading? 'Signing in...':'Enter Admin Panel'}</button>
     </form>
   )
