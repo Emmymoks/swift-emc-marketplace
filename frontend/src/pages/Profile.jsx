@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import axios from 'axios'
-import SupportChat from '../components/SupportChat'
+// SupportChat is dynamically imported to avoid runtime errors breaking the Profile page
+// (some environments may throw when socket.io-client is initialized during render)
+let SupportChat = null
 
 export default function Profile(){
   const [me, setMe] = useState(null)
@@ -66,6 +68,15 @@ export default function Profile(){
 
   if(!me) return <div className="page">Please log in to view your profile.</div>
 
+  // dynamically load SupportChat after profile is present to avoid any runtime errors
+  const [SupportChatComponent, setSupportChatComponent] = React.useState(null)
+  useEffect(()=>{
+    let mounted = true
+    if (!me) return
+    import('../components/SupportChat').then(mod=>{ if(mounted) setSupportChatComponent(()=>mod.default) }).catch(()=>{ /* ignore */ })
+    return ()=>{ mounted = false }
+  },[me])
+
   return (
     <>
     <div className="page">
@@ -97,7 +108,7 @@ export default function Profile(){
         </div>
       </form>
     </div>
-    <SupportChat user={me} />
+  {SupportChatComponent ? <SupportChatComponent user={me} /> : null}
     </>
   )
 }
