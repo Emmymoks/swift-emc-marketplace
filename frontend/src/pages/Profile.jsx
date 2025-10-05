@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import axios from 'axios'
+import SupportChat from '../components/SupportChat'
 
 export default function Profile(){
   const [me, setMe] = useState(null)
@@ -41,8 +42,10 @@ export default function Profile(){
     if(!f) return
     try{
       const url = await uploadFile(f)
-      setEdit({...edit, profilePhotoUrl: url})
-      // optionally auto-save
+      const newEdit = {...edit, profilePhotoUrl: url}
+      setEdit(newEdit)
+      // auto-save profile photo change (no form submit event)
+      try{ await save() }catch(e){}
     }catch(e){ alert('Upload failed') }
   }
 
@@ -64,6 +67,7 @@ export default function Profile(){
   if(!me) return <div className="page">Please log in to view your profile.</div>
 
   return (
+    <>
     <div className="page">
       <h2>Your profile</h2>
       <div style={{display:'flex',gap:12,alignItems:'center'}}>
@@ -93,5 +97,7 @@ export default function Profile(){
         </div>
       </form>
     </div>
+    <SupportChat user={me} />
+    </>
   )
 }
