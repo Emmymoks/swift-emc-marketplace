@@ -1,24 +1,48 @@
 import React, { useEffect, useState } from 'react'
 import axios from 'axios'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+
 export default function Listings(){
   const [list, setList] = useState([]);
+  const nav = useNavigate()
   useEffect(()=> {
     axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/listings')
       .then(res=>setList(res.data.listings || []))
       .catch(()=>setList([]));
   }, []);
+
   return (
     <div className="page">
       <h2>Browse Listings</h2>
       {list.length===0 ? <div className="muted">No listings found</div> : (
       <div className="grid listings-grid">
         {list.map(l=>(
-          <div key={l._id} className="card">
-            <h3>{l.title}</h3>
-            <p className="muted">{l.description?.slice(0,120)}</p>
-            <p><strong>{l.price} {l.currency}</strong></p>
-            <Link to={'/listings/'+l._id} className="btn ghost">View</Link>
+          <div key={l._id} className="card listing-card">
+            <div style={{display:'flex',gap:12}}>
+              <div style={{width:140,height:100,flex:'0 0 140px'}}>
+                <img src={l.images && l.images[0] ? l.images[0] : 'https://via.placeholder.com/280x200'} alt="listing" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:8}} />
+              </div>
+              <div style={{flex:1}}>
+                <h3 style={{marginTop:0}}>{l.title}</h3>
+                <p className="muted" style={{margin:'6px 0'}}>{l.description?.slice(0,180)}</p>
+                <p style={{margin:'6px 0'}}><strong>{l.price} {l.currency}</strong></p>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginTop:8}}>
+                  {l.owner && (
+                    <>
+                      <img src={l.owner.profilePhotoUrl || 'https://via.placeholder.com/48'} alt="owner" style={{width:48,height:48,objectFit:'cover',borderRadius:8}} />
+                      <div style={{display:'flex',flexDirection:'column'}}>
+                        <Link to={'/user/'+encodeURIComponent(l.owner.username)} style={{fontWeight:700}}>{l.owner.username}</Link>
+                        <div className="muted" style={{fontSize:12}}>{l.owner.location}</div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div style={{display:'flex',gap:8,marginTop:12}}>
+              <Link to={'/listings/'+l._id} className="btn">View</Link>
+              <button className="btn ghost" onClick={()=> nav('/listings/'+l._id)}>Message seller</button>
+            </div>
           </div>
         ))}
       </div>)}
