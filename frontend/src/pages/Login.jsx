@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import api from '../lib/api'
+import PasswordInput from '../components/PasswordInput'
 import { useNavigate } from 'react-router-dom'
 
 export default function Login(){
@@ -26,7 +27,7 @@ export default function Login(){
     <form onSubmit={submit} className="page" style={{maxWidth:420}}>
       <h3>Login</h3>
       <input placeholder="Email or Username" value={form.identifier||''} onChange={e=>setForm({...form, identifier:e.target.value})} required/>
-      <input placeholder="Password" type="password" value={form.password||''} onChange={e=>setForm({...form, password:e.target.value})} required/>
+  <PasswordInput placeholder="Password" value={form.password||''} onChange={e=>setForm({...form, password:e.target.value})} required name="password" />
       <button className="btn" type="submit" disabled={loading}>{loading? 'Signing in...':'Login'}</button>
     </form>
   )
