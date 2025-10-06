@@ -23,6 +23,7 @@ function publicUserObj(userDoc, req) {
 // User signup
 router.post('/signup', async (req, res) => {
   try {
+    console.log('POST /api/auth/signup from', req.ip, 'payload keys:', Object.keys(req.body))
     const {
       fullName,
       username,
@@ -74,6 +75,7 @@ router.post('/signup', async (req, res) => {
 // Login
 router.post('/login', async (req, res) => {
   try {
+    console.log('POST /api/auth/login from', req.ip, 'identifier:', req.body.identifier)
     const { identifier, password } = req.body;
     const user = await User.findOne({
       $or: [{ email: identifier }, { username: identifier }],
