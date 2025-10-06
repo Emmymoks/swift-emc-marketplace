@@ -4,6 +4,22 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const router = express.Router();
 
+function absoluteUrl(req, url) {
+  if (!url) return url;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  const host = `${req.protocol}://${req.get('host')}`;
+  return url.startsWith('/') ? host + url : host + '/' + url;
+}
+
+function publicUserObj(userDoc, req) {
+  if (!userDoc) return null;
+  const u = userDoc.toObject ? userDoc.toObject() : { ...userDoc };
+  u.profilePhotoUrl = absoluteUrl(req, u.profilePhotoUrl || '');
+  delete u.passwordHash;
+  delete u.securityAnswerHash;
+  return u;
+}
+
 // User signup
 router.post('/signup', async (req, res) => {
   try {
@@ -88,11 +104,9 @@ router.get('/profile', async (req, res) => {
 
     const token = auth.replace('Bearer ', '');
     const data = jwt.verify(token, process.env.JWT_SECRET || 'dev_secret');
-    const user = await User.findById(data.id).select(
-      '-passwordHash -securityAnswerHash'
-    );
+    const user = await User.findById(data.id).select('-passwordHash -securityAnswerHash');
     if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json({ user });
+    res.json({ user: publicUserObj(user, req) });
   } catch (err) {
     console.error('Profile fetch error', err);
     res.status(500).json({ error: 'Server error' });
@@ -135,9 +149,22 @@ router.put('/profile', async (req, res) => {
     user.language = language || user.language;
 
     await user.save();
-    res.json({ ok: true, user });
+    res.json({ ok: true, user: publicUserObj(user, req) });
   } catch (err) {
     console.error('Profile update error', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Public user by username (for listing cards/profile visits)
+router.get('/user/:username', async (req, res) => {
+  try {
+    const username = req.params.username;
+    const user = await User.findOne({ username }).select('-passwordHash -securityAnswerHash');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ user: publicUserObj(user, req) });
+  } catch (err) {
+    console.error('Public user fetch error', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
