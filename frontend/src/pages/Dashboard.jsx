@@ -38,7 +38,14 @@ export default function Dashboard(){
   }
   
   // preview images
-  const previews = listing._files ? listing._files.map((f,i)=> URL.createObjectURL(f)) : []
+  const [previews, setPreviews] = useState([])
+
+  useEffect(()=>{
+    // create object URLs for previews and revoke previous
+    const urls = listing._files ? listing._files.map(f=> URL.createObjectURL(f)) : []
+    setPreviews(urls)
+    return ()=>{ urls.forEach(u=>{ try{ URL.revokeObjectURL(u) }catch(e){} }) }
+  },[listing._files])
   return (
     <div className="page">
       <h2>Dashboard</h2>
@@ -61,7 +68,7 @@ export default function Dashboard(){
         <div style={{margin:'8px 0'}}>
           <label className="btn ghost">Upload images<input type="file" accept="image/*" multiple onChange={onFilesChange} style={{display:'none'}} /></label>
           <div style={{display:'flex',gap:8,marginTop:8}}>
-            {previews.map((p,idx)=>(<img key={idx} src={p} style={{width:96,height:96,objectFit:'cover',borderRadius:8}} alt="preview" />))}
+            {previews.map((p,idx)=>(<img key={idx} src={p} onError={(e)=>{ e.target.onerror=null; e.target.src='https://via.placeholder.com/96' }} style={{width:96,height:96,objectFit:'cover',borderRadius:8}} alt="preview" />))}
           </div>
         </div>
         <button className="btn" type="submit" disabled={submitting}>{submitting? 'Creating...':'Create (Pending)'}</button>
