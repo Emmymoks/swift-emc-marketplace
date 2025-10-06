@@ -30,6 +30,17 @@ router.post('/', async (req, res) => {
     if (io) {
       io.to(roomId).emit('newMessage', msg);
       io.emit('admin:newMessage', msg);
+      // If message references a listing, also notify the listing owner room
+      if (listing) {
+        try {
+          const L = require('../models/Listing');
+          L.findById(listing).then(lDoc => {
+            if (lDoc && lDoc.owner) {
+              io.to(`user:${String(lDoc.owner)}`).emit('newMessage', msg);
+            }
+          }).catch(()=>{});
+        } catch (e) {}
+      }
     }
 
     res.json({ ok: true, msg });
