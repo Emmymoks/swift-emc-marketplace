@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import api from '../lib/api'
+import PasswordInput from '../components/PasswordInput'
 import { useNavigate } from 'react-router-dom'
 
 export default function AdminLogin(){
@@ -24,7 +25,7 @@ export default function AdminLogin(){
     <form onSubmit={submit} className="page" style={{maxWidth:420}}>
       <h3>Admin login</h3>
       <input placeholder="Admin email" type="email" value={email} onChange={e=>setEmail(e.target.value)} required/>
-      <input placeholder="Admin password" type="password" value={secret} onChange={e=>setSecret(e.target.value)} required/>
+  <PasswordInput placeholder="Admin password" value={secret} onChange={e=>setSecret(e.target.value)} required name="adminPassword" />
       <div style={{marginTop:8,fontSize:13}} className="muted">Enter ADMIN_EMAIL and ADMIN_PASSWORD </div>
       <button className="btn" type="submit" disabled={loading}>{loading? 'Signing in...':'Enter Admin Panel'}</button>
     </form>
