@@ -17,7 +17,18 @@ export default function ChatPopover({ roomId, listingId, sellerId, onClose }){
 
   useEffect(()=>{
     // Determine room identifier
-    const r = roomId || (listingId ? `listing_${listingId}` : (sellerId ? `user:${sellerId}` : null))
+    // If both sellerId and myId available, use deterministic 2-user room: user:<min>_<max>
+    let r = roomId || null
+    if(!r){
+      if(listingId) r = `listing_${listingId}`
+      else if(sellerId && myId){
+        try{
+          const a = String(myId)
+          const b = String(sellerId)
+          r = `user:${a < b ? a + '_' + b : b + '_' + a}`
+        }catch(e){ r = `user:${sellerId}` }
+      }else if(sellerId) r = `user:${sellerId}`
+    }
     if(!r) return
 
     // initialize socket
@@ -67,7 +78,14 @@ export default function ChatPopover({ roomId, listingId, sellerId, onClose }){
 
   async function send(){
     if(!text.trim()) return
-    const r = roomId || (listingId ? `listing_${listingId}` : `user:${sellerId}`)
+    // compute the same deterministic room id as the loader
+    let r = roomId || null
+    if(!r){
+      if(listingId) r = `listing_${listingId}`
+      else if(sellerId && myId){
+        try{ const a = String(myId), b = String(sellerId); r = `user:${a < b ? a + '_' + b : b + '_' + a}` }catch(e){ r = `user:${sellerId}` }
+      }else if(sellerId) r = `user:${sellerId}`
+    }
     const token = localStorage.getItem('token')
     try{
       await axios.post(`${base}/api/messages`, { roomId: r, text, listing: listingId || null, toId: sellerId || null }, { headers: { Authorization: token ? ('Bearer '+token) : '' } })
@@ -97,7 +115,7 @@ export default function ChatPopover({ roomId, listingId, sellerId, onClose }){
             <button type="button" className="btn ghost" onClick={()=>{ setOpen(false); if(onClose) onClose() }}>Close</button>
           </div>
         </div>
-        <div style={{padding:8, height:260, overflowY:'auto', background:'#fff'}}>
+          <div style={{padding:8, height:220, overflowY:'auto', background:'#fff'}}>
           {msgs.length===0 ? <div className="muted">No messages</div> : msgs.map((m,i)=> {
             const info = senderInfo(m)
             const mine = info.mine
@@ -111,9 +129,14 @@ export default function ChatPopover({ roomId, listingId, sellerId, onClose }){
             )
           })}
         </div>
-        <div style={{padding:8,display:'flex',gap:8}}>
+        <div style={{padding:8,display:'flex',gap:8,flexDirection:'column'}}>
+          <div style={{display:'flex',gap:8}}>
           <input value={text} onChange={e=>setText(e.target.value)} placeholder="Type a message..." onKeyDown={e=> e.key==='Enter' && send()} />
           <button type="button" className="btn" onClick={send}>Send</button>
+          </div>
+          <div style={{display:'flex',justifyContent:'flex-end'}}>
+            <a href="/chats" onClick={(e)=>{ e.preventDefault(); window.location.href = '/chats' }} className="btn ghost">Open all chats</a>
+          </div>
         </div>
       </div>
     </div>
