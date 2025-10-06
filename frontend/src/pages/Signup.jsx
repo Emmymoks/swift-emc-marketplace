@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import axios from 'axios'
+import api from '../lib/api'
 import { useNavigate } from 'react-router-dom'
 import countries from '../data/countries'
 
@@ -82,12 +82,13 @@ export default function Signup(){
         // remove the temporary phoneNumber field so backend receives 'phone'
         delete payload.phoneNumber
       }
-      const { data } = await axios.post((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/auth/signup', payload);
-  localStorage.setItem('token', data.token);
-  window.dispatchEvent(new Event('tokenChange'));
-  nav('/profile');
-    }catch(err){ alert(err?.response?.data?.error || 'Error'); }
-    setLoading(false);
+      const { data } = await api.post('/api/auth/signup', payload);
+      if (!data || !data.token) throw new Error('Invalid response from server')
+      localStorage.setItem('token', data.token);
+      window.dispatchEvent(new Event('tokenChange'));
+      nav('/profile');
+    }catch(err){ alert(err?.response?.data?.error || err?.message || 'Error'); }
+    finally{ setLoading(false) }
   }
 
   return (
