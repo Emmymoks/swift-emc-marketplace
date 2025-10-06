@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useRef, Suspense } from 'react'
 import axios from 'axios'
 import { io as ioClient } from 'socket.io-client'
+import { resolveImageUrl, PLACEHOLDER_96 } from '../lib/image'
 
 // Profile page
 export default function Profile() {
@@ -169,17 +170,17 @@ export default function Profile() {
       <div className="page">
         <h2>Your Profile</h2>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <img
-            src={me.profilePhotoUrl || 'https://via.placeholder.com/96'}
-            alt="avatar"
-            onError={(e)=>{ e.target.onerror=null; e.target.src='https://via.placeholder.com/96' }}
-            style={{
-              width: 96,
-              height: 96,
-              borderRadius: 12,
-              objectFit: 'cover',
-            }}
-          />
+            <img
+              src={resolveImageUrl(me.profilePhotoUrl) || PLACEHOLDER_96}
+              alt="avatar"
+              onError={(e)=>{ e.target.onerror=null; e.target.src=PLACEHOLDER_96 }}
+              style={{
+                width: 96,
+                height: 96,
+                borderRadius: 12,
+                objectFit: 'cover',
+              }}
+            />
           <div>
             <label className="btn ghost" style={{ display: 'inline-block' }}>
               Change photo
