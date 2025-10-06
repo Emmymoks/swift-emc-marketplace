@@ -53,6 +53,52 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Return list of conversations for the authenticated user
+router.get('/conversations/list', async (req, res) => {
+  try {
+    const user = await getUserFromHeader(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    // Find messages where user participated
+    const msgs = await Message.find({ $or: [{ from: user._id }, { to: user._id }] })
+      .sort({ createdAt: -1 })
+      .populate('from', 'username profilePhotoUrl')
+      .populate('to', 'username profilePhotoUrl')
+      .lean();
+
+    const seen = new Set();
+    const convs = [];
+
+    for (const m of msgs) {
+      if (!m || !m.roomId) continue;
+      if (seen.has(m.roomId)) continue;
+      seen.add(m.roomId);
+
+      // determine partner
+      let partner = null;
+      if (m.from && String(m.from._id) === String(user._id)) partner = m.to;
+      else partner = m.from;
+
+      // only include conversations that have another participant
+      if (!partner) continue;
+
+      convs.push({
+        roomId: m.roomId,
+        lastMessage: m.text,
+        at: m.createdAt,
+        partner: partner,
+      });
+    }
+
+    res.json({ conversations: convs });
+  } catch (err) {
+    console.error('Conversations fetch error', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+
+// Fetch messages for a room
 router.get('/:roomId', async (req, res) => {
   try {
     const msgs = await Message.find({ roomId: req.params.roomId }).sort({
