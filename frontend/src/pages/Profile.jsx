@@ -1,6 +1,7 @@
 // frontend/src/pages/Profile.jsx
 import React, { useEffect, useState, useRef, Suspense } from 'react'
 import axios from 'axios'
+import { io as ioClient } from 'socket.io-client'
 
 // Profile page
 export default function Profile() {
@@ -22,6 +23,10 @@ export default function Profile() {
   // Load user profile
   useEffect(() => {
     loadProfile()
+    function onStorage() { loadProfile() }
+    window.addEventListener('storage', onStorage)
+    window.addEventListener('tokenChange', onStorage)
+    return () => { window.removeEventListener('storage', onStorage); window.removeEventListener('tokenChange', onStorage) }
   }, [])
 
   async function loadProfile() {
@@ -125,6 +130,25 @@ export default function Profile() {
   useEffect(() => {
     let active = true
     if (!me) return
+    // join owner user room to receive direct messages about listings
+    try{
+      const ws = import.meta.env.VITE_API_WS || (import.meta.env.VITE_API_URL || 'http://localhost:5000')
+      const s = ioClient(ws, { transports: ['websocket'], reconnection: true })
+      const room = `user:${me._id || me.id}`
+      s.on('connect', ()=> s.emit('joinRoom', room))
+      s.on('newMessage', (m)=> {
+        // basic browser alert for incoming messages while on profile
+        if(m && m.roomId && m.listing) {
+          // noop - leave quiet; could integrate a toast
+        }
+      })
+      // cleanup on unmount
+      const sock = s
+      ;(async () => {
+        // continue
+      })()
+      return () => { try{ sock.emit('leaveRoom', room); sock.disconnect() }catch(e){} }
+    }catch(e){}
     import('../components/SupportChat')
       .then((mod) => {
         if (active && mounted.current) {
@@ -155,6 +179,7 @@ export default function Profile() {
           <img
             src={me.profilePhotoUrl || 'https://via.placeholder.com/96'}
             alt="avatar"
+            onError={(e)=>{ e.target.onerror=null; e.target.src='https://via.placeholder.com/96' }}
             style={{
               width: 96,
               height: 96,
