@@ -40,6 +40,7 @@ export default function Profile() {
 
       if (mounted.current) {
         setMe(data.user)
+        try{ localStorage.setItem('profile', JSON.stringify(data.user)) }catch(e){}
         setEdit({
           fullName: data.user.fullName || '',
           email: data.user.email || '',
@@ -67,6 +68,7 @@ export default function Profile() {
       })
       if (mounted.current) {
         setMe(data.user)
+        try{ localStorage.setItem('profile', JSON.stringify(data.user)) }catch(e){}
         alert('Profile updated')
       }
     } catch (err) {
@@ -130,37 +132,28 @@ export default function Profile() {
   useEffect(() => {
     let active = true
     if (!me) return
-    // join owner user room to receive direct messages about listings
-    try{
-      const ws = import.meta.env.VITE_API_WS || (import.meta.env.VITE_API_URL || 'http://localhost:5000')
-      const s = ioClient(ws, { transports: ['websocket'], reconnection: true })
-      const room = `user:${me._id || me.id}`
-      s.on('connect', ()=> s.emit('joinRoom', room))
-      s.on('newMessage', (m)=> {
-        // basic browser alert for incoming messages while on profile
-        if(m && m.roomId && m.listing) {
-          // noop - leave quiet; could integrate a toast
-        }
-      })
-      // cleanup on unmount
-      const sock = s
-      ;(async () => {
-        // continue
-      })()
-      return () => { try{ sock.emit('leaveRoom', room); sock.disconnect() }catch(e){} }
-    }catch(e){}
+
+    // set up socket for direct user notifications and import support chat
+    const ws = import.meta.env.VITE_API_WS || (import.meta.env.VITE_API_URL || 'http://localhost:5000')
+    const s = ioClient(ws, { transports: ['websocket'], reconnection: true })
+    const room = `user:${me._id || me.id}`
+    s.on('connect', () => s.emit('joinRoom', room))
+    s.on('newMessage', (m) => {
+      // reserved for future toast/unread handling
+    })
+
     import('../components/SupportChat')
       .then((mod) => {
-        if (active && mounted.current) {
-          setSupportChatComponent(() => mod.default)
-        }
+        if (active && mounted.current) setSupportChatComponent(() => mod.default)
       })
       .catch((err) => {
         console.error('SupportChat failed to load:', err)
         setSupportChatComponent(null)
       })
+
     return () => {
       active = false
+      try { s.emit('leaveRoom', room); s.disconnect() } catch (e) {}
     }
   }, [me])
 
