@@ -12,6 +12,7 @@ import AdminPanel from './pages/AdminPanel'
 import UserProfile from './pages/UserProfile'
 import MyListings from './pages/MyListings'
 import EditListing from './pages/EditListing'
+import Chats from './pages/Chats'
 
 export default function App(){
   const [token, setToken] = useState(localStorage.getItem('token'))
@@ -64,6 +65,7 @@ export default function App(){
           {!token && <Link to="/login">Login</Link>}
           {/* when logged in show profile, add listing and sign out */}
           {token && <Link to="/profile">Profile</Link>}
+          {token && <Link to="/chats">Chats</Link>}
           {token && <Link to="/add-listing">Add listing</Link>}
           {token && <Link to="/my-listings">My listings</Link>}
           {token && <button type="button" className="btn ghost" onClick={handleSignOut} style={{marginLeft:8}}>Sign out</button>}
@@ -99,6 +101,7 @@ export default function App(){
           <Route path="/signup" element={<Signup/>} />
           <Route path="/login" element={<Login/>} />
           <Route path="/profile" element={<Profile/>} />
+          <Route path="/chats" element={<Chats/>} />
           <Route path="/add-listing" element={<Dashboard/>} />
           <Route path="/dashboard" element={<Dashboard/>} />
           <Route path="/admin-login" element={<AdminLogin/>} />
