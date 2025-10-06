@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import axios from 'axios'
+import api from '../lib/api'
 import { useNavigate } from 'react-router-dom'
 
 export default function AdminLogin(){
@@ -11,13 +11,13 @@ export default function AdminLogin(){
   async function submit(e){
     e.preventDefault(); setLoading(true);
     try{
-      const res = await axios.post((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/login', { email, password: secret });
+      const res = await api.post('/api/admin/login', { email, password: secret });
       // store secret temporarily in sessionStorage for admin panel actions
       sessionStorage.setItem('admin_secret', res.data.secret || secret)
       window.dispatchEvent(new Event('adminChange'));
       nav('/Adminpanel')
-    }catch(err){ alert('Invalid admin secret'); }
-    setLoading(false);
+    }catch(err){ alert(err?.response?.data?.error || err?.message || 'Invalid admin secret'); }
+    finally{ setLoading(false) }
   }
 
   return (
