@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { resolveImageUrl, PLACEHOLDER_280x200, PLACEHOLDER_48 } from '../lib/image'
 import axios from 'axios'
 import { Link, useNavigate } from 'react-router-dom'
 import ChatPopover from '../components/ChatPopover'
@@ -31,7 +32,7 @@ export default function Listings(){
                 <div style={{display:'flex',alignItems:'center',gap:8,marginTop:8}}>
                   {l.owner && (
                     <>
-                      <img src={l.owner.profilePhotoUrl || 'https://via.placeholder.com/48'} alt="owner" onError={(e)=>{ e.target.onerror=null; e.target.src='https://via.placeholder.com/48' }} style={{width:48,height:48,objectFit:'cover',borderRadius:8}} />
+                        <img src={resolveImageUrl(l.owner.profilePhotoUrl) || PLACEHOLDER_48} alt="owner" onError={(e)=>{ e.target.onerror=null; e.target.src=PLACEHOLDER_48 }} style={{width:48,height:48,objectFit:'cover',borderRadius:8}} />
                       <div style={{display:'flex',flexDirection:'column'}}>
                         <Link to={'/user/'+encodeURIComponent(l.owner.username)} style={{fontWeight:700}}>{l.owner.username}</Link>
                         <div className="muted" style={{fontSize:12}}>{l.owner.location}</div>
@@ -41,7 +42,7 @@ export default function Listings(){
                 </div>
               </div>
             </div>
-            <div style={{display:'flex',gap:8,marginTop:12}}>
+                <div style={{display:'flex',gap:8,marginTop:12}}>
               <Link to={'/listings/'+l._id} className="btn">View</Link>
               <button type="button" className="btn ghost" onClick={()=>{
                 const token = localStorage.getItem('token')
