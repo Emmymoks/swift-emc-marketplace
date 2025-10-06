@@ -66,6 +66,7 @@ export default function App(){
           {token && <Link to="/profile">Profile</Link>}
           {token && <Link to="/add-listing">Add listing</Link>}
           {token && <Link to="/my-listings">My listings</Link>}
+          {token && <Link to="/my-listings">My listings</Link>}
           {token && <button type="button" className="btn ghost" onClick={handleSignOut} style={{marginLeft:8}}>Sign out</button>}
           {isAdmin && <button type="button" className="btn ghost" onClick={handleAdminSignOut} style={{marginLeft:8}}>Admin logout</button>}
         </nav>
@@ -87,6 +88,7 @@ export default function App(){
           {!token && <Link to="/login">Login</Link>}
           {token && <Link to="/profile">Profile</Link>}
           {token && <Link to="/add-listing">Add listing</Link>}
+          {token && <Link to="/my-listings">My listings</Link>}
           {token && <button type="button" className="btn ghost" onClick={e=>{ e.preventDefault(); handleSignOut(); }}>Sign out</button>}
           {isAdmin && <button type="button" className="btn ghost" onClick={e=>{ e.preventDefault(); handleAdminSignOut(); }}>Admin logout</button>}
         </div>
