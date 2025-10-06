@@ -9,6 +9,9 @@ import AdminLogin from './pages/AdminLogin'
 import Listings from './pages/Listings'
 import ListingView from './pages/ListingView'
 import AdminPanel from './pages/AdminPanel'
+import UserProfile from './pages/UserProfile'
+import MyListings from './pages/MyListings'
+import EditListing from './pages/EditListing'
 
 export default function App(){
   const [token, setToken] = useState(localStorage.getItem('token'))
@@ -30,6 +33,7 @@ export default function App(){
     localStorage.removeItem('token')
     setToken(null)
     setMobileOpen(false)
+    window.dispatchEvent(new Event('tokenChange'))
     nav('/')
   }
 
@@ -61,6 +65,7 @@ export default function App(){
           {/* when logged in show profile, add listing and sign out */}
           {token && <Link to="/profile">Profile</Link>}
           {token && <Link to="/add-listing">Add listing</Link>}
+          {token && <Link to="/my-listings">My listings</Link>}
           {token && <button className="btn ghost" onClick={handleSignOut} style={{marginLeft:8}}>Sign out</button>}
           {isAdmin && <button className="btn ghost" onClick={handleAdminSignOut} style={{marginLeft:8}}>Admin logout</button>}
         </nav>
@@ -98,6 +103,9 @@ export default function App(){
           <Route path="/admin-login" element={<AdminLogin/>} />
           <Route path="/listings" element={<Listings/>} />
           <Route path="/listings/:id" element={<ListingView/>} />
+          <Route path="/user/:username" element={<UserProfile/>} />
+          <Route path="/my-listings" element={<MyListings/>} />
+          <Route path="/edit-listing/:id" element={<EditListing/>} />
           <Route path="/Adminpanel" element={isAdmin ? <AdminPanel/> : <Navigate to="/admin-login" replace />} />
         </Routes>
       </main>
