@@ -17,7 +17,8 @@ export default function MyListings(){
       .catch(()=>{})
       .finally(()=>{ if(mounted) setLoading(false) })
     // join user room for direct messages - fetch profile if needed
-    (async ()=>{
+    let sockCleanup = null
+    ;(async ()=>{
       try{
         let profile = null
         try{ profile = JSON.parse(localStorage.getItem('profile') || 'null') }catch(e){}
@@ -33,12 +34,11 @@ export default function MyListings(){
           const s = ioClient(ws, { transports: ['websocket'], reconnection: true })
           const room = `user:${profile._id || profile.id}`
           s.on('connect', ()=> s.emit('joinRoom', room))
-          // cleanup on unmount
-          return ()=>{ try{ s.emit('leaveRoom', room); s.disconnect() }catch(e){} }
+          sockCleanup = ()=>{ try{ s.emit('leaveRoom', room); s.disconnect() }catch(e){} }
         }
       }catch(e){}
     })()
-    return ()=> mounted = false
+    return ()=>{ mounted = false; if(sockCleanup) sockCleanup() }
   },[])
 
   async function del(id){
