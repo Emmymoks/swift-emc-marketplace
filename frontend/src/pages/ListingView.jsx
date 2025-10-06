@@ -2,12 +2,14 @@ import React, { useEffect, useState, useRef } from 'react'
 import axios from 'axios'
 import { useParams, Link } from 'react-router-dom'
 import io from 'socket.io-client'
+import ChatPopover from '../components/ChatPopover'
 
 export default function ListingView(){
   const { id } = useParams();
   const [listing, setListing] = useState(null);
   const [msgs, setMsgs] = useState([]);
   const [text, setText] = useState('');
+  const [openChat, setOpenChat] = useState(false);
   const socketRef = useRef(null);
   useEffect(()=> {
     let mounted = true;
@@ -48,13 +50,18 @@ export default function ListingView(){
         </div>
         <div style={{flex:1}}>
           <h2 style={{margin:0}}>{listing.title}</h2>
-          {listing.owner && (<div style={{display:'flex',alignItems:'center',gap:8,marginTop:6}}>
-            <img src={listing.owner.profilePhotoUrl || 'https://via.placeholder.com/48'} alt="owner" style={{width:48,height:48,objectFit:'cover',borderRadius:8}} />
-            <div>
-              <div style={{fontWeight:700}}><Link to={'/user/'+encodeURIComponent(listing.owner.username)}>@{listing.owner.username}</Link></div>
-              <div className="muted" style={{fontSize:12}}>{listing.owner.location}</div>
+          {listing.owner && (
+            <div style={{display:'flex',alignItems:'center',gap:8,marginTop:6}}>
+              <img src={listing.owner.profilePhotoUrl || 'https://via.placeholder.com/48'} alt="owner" style={{width:48,height:48,objectFit:'cover',borderRadius:8}} />
+              <div style={{flex:1}}>
+                <div style={{fontWeight:700}}><Link to={'/user/'+encodeURIComponent(listing.owner.username)}>@{listing.owner.username}</Link></div>
+                <div className="muted" style={{fontSize:12}}>{listing.owner.location}</div>
+              </div>
+              <div>
+                <button type="button" className="btn ghost" onClick={()=> setOpenChat(true)}>Message seller</button>
+              </div>
             </div>
-          </div>)}
+          )}
         </div>
       </div>
       <p className="muted">{listing.description}</p>
@@ -73,6 +80,7 @@ export default function ListingView(){
           <button className="btn" onClick={send}>Send</button>
         </div>
       </div>
+      {openChat && <ChatPopover listingId={id} sellerId={listing.owner && listing.owner._id} onClose={()=>setOpenChat(false)} />}
     </div>
   )
 }
