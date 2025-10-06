@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import api from '../lib/api'
 import { useNavigate } from 'react-router-dom'
 import countries from '../data/countries'
+import PasswordInput from '../components/PasswordInput'
 
 // Small helper to build flag svg urls from flagcdn
 function flagUrl(code){
@@ -110,7 +111,7 @@ export default function Signup(){
       </div>
 
   <input placeholder="Email" type="email" value={form.email||''} onChange={e=>setField('email', e.target.value)} required/>
-  <input placeholder="Password" type="password" value={form.password||''} onChange={e=>setField('password', e.target.value)} required/>
+  <PasswordInput placeholder="Password" value={form.password||''} onChange={e=>setField('password', e.target.value)} required name="password" />
 
       <select value={form.securityQuestion||''} onChange={e=>setField('securityQuestion', e.target.value)} required>
         <option value="">Select a security question</option>
