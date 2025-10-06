@@ -72,6 +72,7 @@ export default function Signup(){
   async function submit(e){
     e.preventDefault();
     setLoading(true);
+    if(!form.username || !form.email || !form.password){ alert('username, email and password are required'); setLoading(false); return }
     try{
       // compose phone from dial + number if provided separately and normalize
       const payload = { ...form };
@@ -101,15 +102,15 @@ export default function Signup(){
         </div>
       </div>
 
-      <input placeholder="Username" value={form.username||''} onChange={e=>setField('username', e.target.value)} required/>
+  <input placeholder="Username" value={form.username||''} onChange={e=>setField('username', e.target.value)} required/>
 
       <div style={{display:'flex',gap:8}}>
         <CountryDialSelect dial={form.dial} onChange={v=>setField('dial', v)} />
         <input placeholder="Phone number" value={form.phoneNumber||''} onChange={e=>setField('phoneNumber', e.target.value)} />
       </div>
 
-      <input placeholder="Email" type="email" value={form.email||''} onChange={e=>setField('email', e.target.value)} required/>
-      <input placeholder="Password" type="password" value={form.password||''} onChange={e=>setField('password', e.target.value)} required/>
+  <input placeholder="Email" type="email" value={form.email||''} onChange={e=>setField('email', e.target.value)} required/>
+  <input placeholder="Password" type="password" value={form.password||''} onChange={e=>setField('password', e.target.value)} required/>
 
       <select value={form.securityQuestion||''} onChange={e=>setField('securityQuestion', e.target.value)} required>
         <option value="">Select a security question</option>
