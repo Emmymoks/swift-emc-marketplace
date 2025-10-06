@@ -87,9 +87,52 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 
-app.post('/api/upload', upload.single('file'), (req, res) => {
+// Optional S3 configuration
+let s3Client = null
+let s3Bucket = process.env.AWS_S3_BUCKET || process.env.S3_BUCKET
+if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && s3Bucket) {
+  try {
+    const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3')
+    s3Client = new S3Client({ region: process.env.AWS_REGION || 'us-east-1' })
+    // attach to app locals so other modules could use it if needed
+    app.locals.s3 = { client: s3Client, PutObjectCommand }
+    console.log('✅ S3 uploads enabled')
+  } catch (e) {
+    console.warn('⚠️ Failed to initialize S3 client, falling back to local uploads', e)
+    s3Client = null
+  }
+}
+
+app.post('/api/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    // If S3 is configured, try to upload the file to S3 and return the S3 url
+    if (s3Client) {
+      try {
+        const { PutObjectCommand } = require('@aws-sdk/client-s3')
+        const key = `${Date.now()}-${req.file.filename}`
+        const params = {
+          Bucket: s3Bucket,
+          Key: key,
+          Body: require('fs').createReadStream(req.file.path),
+          ContentType: req.file.mimetype,
+          ACL: process.env.AWS_S3_ACL || 'public-read'
+        }
+        await s3Client.send(new PutObjectCommand(params))
+        // Construct URL. If the bucket is in a specific endpoint (like S3 compatible storage), environment can provide S3_BASE_URL
+        const baseUrl = process.env.S3_BASE_URL || `https://${s3Bucket}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com`
+        const url = `${baseUrl}/${encodeURIComponent(key)}`
+        // remove local temp file
+        try{ fs.unlinkSync(req.file.path) }catch(e){}
+        return res.json({ ok: true, url })
+      } catch (e) {
+        console.warn('S3 upload failed, falling back to local host storage', e)
+        // fall through to local return
+      }
+    }
+
+    // Fallback: return local file url
     const host = `${req.protocol}://${req.get('host')}`;
     const url = `${host}/uploads/${req.file.filename}`;
     res.json({ ok: true, url });
