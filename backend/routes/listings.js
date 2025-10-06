@@ -16,6 +16,21 @@ async function getUserFromHeader(req) {
   }
 }
 
+function abs(req, url){
+  if (!url) return url;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  const host = `${req.protocol}://${req.get('host')}`;
+  return url.startsWith('/') ? host + url : host + '/' + url;
+}
+
+function sanitizeListing(listingDoc, req){
+  if(!listingDoc) return listingDoc;
+  const l = listingDoc.toObject ? listingDoc.toObject() : { ...listingDoc };
+  if(Array.isArray(l.images)) l.images = l.images.map(i=> abs(req, i));
+  if(l.owner && l.owner.profilePhotoUrl) l.owner.profilePhotoUrl = abs(req, l.owner.profilePhotoUrl);
+  return l;
+}
+
 // Create listing (pending approval)
 router.post('/', async (req, res) => {
   try {
@@ -59,7 +74,8 @@ router.get('/', async (req, res) => {
       .limit(200)
       .populate('owner', 'username profilePhotoUrl location');
 
-    res.json({ listings });
+    const sanitized = listings.map(l=> sanitizeListing(l, req));
+    res.json({ listings: sanitized });
   } catch (err) {
     console.error('Get listings error', err);
     res.status(500).json({ error: 'Server error' });
@@ -69,13 +85,10 @@ router.get('/', async (req, res) => {
 // Get single listing
 router.get('/:id', async (req, res) => {
   try {
-    const l = await Listing.findById(req.params.id).populate(
-      'owner',
-      'username profilePhotoUrl location'
-    );
+    const l = await Listing.findById(req.params.id).populate('owner','username profilePhotoUrl location');
     if (!l) return res.status(404).json({ error: 'Not found' });
     if (!l.approved) return res.status(403).json({ error: 'Listing not yet approved' });
-    res.json({ listing: l });
+    res.json({ listing: sanitizeListing(l, req) });
   } catch (err) {
     console.error('Get listing error', err);
     res.status(500).json({ error: 'Server error' });
