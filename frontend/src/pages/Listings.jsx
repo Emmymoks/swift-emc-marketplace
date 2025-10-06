@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import axios from 'axios'
 import { Link, useNavigate } from 'react-router-dom'
+import ChatPopover from '../components/ChatPopover'
 
 export default function Listings(){
   const [list, setList] = useState([]);
@@ -10,6 +11,7 @@ export default function Listings(){
       .then(res=>setList(res.data.listings || []))
       .catch(()=>setList([]));
   }, []);
+  const [activeChat, setActiveChat] = useState(null) // listing id currently chatted
 
   return (
     <div className="page">
@@ -41,7 +43,14 @@ export default function Listings(){
             </div>
             <div style={{display:'flex',gap:8,marginTop:12}}>
               <Link to={'/listings/'+l._id} className="btn">View</Link>
-              <button type="button" className="btn ghost" onClick={()=> nav('/listings/'+l._id)}>Message seller</button>
+              <button type="button" className="btn ghost" onClick={()=>{
+                const token = localStorage.getItem('token')
+                if(!token){ nav('/listings/'+l._id); return }
+                setActiveChat(l._id)
+              }}>Message seller</button>
+              {activeChat === l._id && (
+                <ChatPopover listingId={l._id} sellerId={l.owner && l.owner._id} onClose={()=>setActiveChat(null)} />
+              )}
             </div>
           </div>
         ))}
