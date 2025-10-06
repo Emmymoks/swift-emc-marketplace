@@ -7,6 +7,9 @@ const router = express.Router();
 function absoluteUrl(req, url) {
   if (!url) return url;
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  // If S3_BASE_URL is configured, use it for stored relative paths (useful when uploads moved to S3)
+  const s3Base = process.env.S3_BASE_URL || (process.env.S3_BUCKET && process.env.AWS_REGION ? `https://${process.env.S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com` : null)
+  if (s3Base) return url.startsWith('/') ? s3Base + url : s3Base + '/' + url
   const host = `${req.protocol}://${req.get('host')}`;
   return url.startsWith('/') ? host + url : host + '/' + url;
 }
