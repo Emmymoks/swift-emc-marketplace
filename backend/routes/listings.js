@@ -82,6 +82,20 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Get listings owned by the authenticated user
+router.get('/mine', async (req, res) => {
+  try {
+    const user = await getUserFromHeader(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    const listings = await Listing.find({ owner: user._id }).sort({ createdAt: -1 });
+    const sanitized = listings.map(l => sanitizeListing(l, req));
+    res.json({ listings: sanitized });
+  } catch (err) {
+    console.error('Get my listings error', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Get single listing
 router.get('/:id', async (req, res) => {
   try {
@@ -110,6 +124,47 @@ router.post('/:id/review', async (req, res) => {
     res.json({ ok: true, listing });
   } catch (err) {
     console.error('Review error', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Update listing by owner
+router.put('/:id', async (req, res) => {
+  try {
+    const user = await getUserFromHeader(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    const listing = await Listing.findById(req.params.id);
+    if (!listing) return res.status(404).json({ error: 'Not found' });
+    if (String(listing.owner) !== String(user._id)) return res.status(403).json({ error: 'Forbidden' });
+    const { title, type, category, images, description, price, currency, location } = req.body;
+    if (title) listing.title = title;
+    if (type) listing.type = type;
+    if (category) listing.category = category;
+    if (images) listing.images = images;
+    if (description) listing.description = description;
+    if (price !== undefined) listing.price = price;
+    if (currency) listing.currency = currency;
+    if (location) listing.location = location;
+    await listing.save();
+    res.json({ ok: true, listing: sanitizeListing(listing, req) });
+  } catch (err) {
+    console.error('Update listing error', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Delete listing by owner
+router.delete('/:id', async (req, res) => {
+  try {
+    const user = await getUserFromHeader(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    const listing = await Listing.findById(req.params.id);
+    if (!listing) return res.status(404).json({ error: 'Not found' });
+    if (String(listing.owner) !== String(user._id)) return res.status(403).json({ error: 'Forbidden' });
+    await listing.deleteOne();
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Delete listing error', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
