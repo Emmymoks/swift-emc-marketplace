@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import axios from 'axios'
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import io from 'socket.io-client'
 
 export default function ListingView(){
@@ -51,7 +51,7 @@ export default function ListingView(){
           {listing.owner && (<div style={{display:'flex',alignItems:'center',gap:8,marginTop:6}}>
             <img src={listing.owner.profilePhotoUrl || 'https://via.placeholder.com/48'} alt="owner" style={{width:48,height:48,objectFit:'cover',borderRadius:8}} />
             <div>
-              <div style={{fontWeight:700}}><a href={'/user/'+encodeURIComponent(listing.owner.username)}>@{listing.owner.username}</a></div>
+              <div style={{fontWeight:700}}><Link to={'/user/'+encodeURIComponent(listing.owner.username)}>@{listing.owner.username}</Link></div>
               <div className="muted" style={{fontSize:12}}>{listing.owner.location}</div>
             </div>
           </div>)}
