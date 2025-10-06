@@ -20,7 +20,7 @@ export default function Listings(){
           <div key={l._id} className="card listing-card">
             <div style={{display:'flex',gap:12}}>
               <div style={{width:140,height:100,flex:'0 0 140px'}}>
-                <img src={l.images && l.images[0] ? l.images[0] : 'https://via.placeholder.com/280x200'} alt="listing" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:8}} />
+                <img src={l.images && l.images[0] ? l.images[0] : 'https://via.placeholder.com/280x200'} alt="listing" onError={(e)=>{ e.target.onerror=null; e.target.src='https://via.placeholder.com/280x200' }} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:8}} />
               </div>
               <div style={{flex:1}}>
                 <h3 style={{marginTop:0}}>{l.title}</h3>
@@ -29,7 +29,7 @@ export default function Listings(){
                 <div style={{display:'flex',alignItems:'center',gap:8,marginTop:8}}>
                   {l.owner && (
                     <>
-                      <img src={l.owner.profilePhotoUrl || 'https://via.placeholder.com/48'} alt="owner" style={{width:48,height:48,objectFit:'cover',borderRadius:8}} />
+                      <img src={l.owner.profilePhotoUrl || 'https://via.placeholder.com/48'} alt="owner" onError={(e)=>{ e.target.onerror=null; e.target.src='https://via.placeholder.com/48' }} style={{width:48,height:48,objectFit:'cover',borderRadius:8}} />
                       <div style={{display:'flex',flexDirection:'column'}}>
                         <Link to={'/user/'+encodeURIComponent(l.owner.username)} style={{fontWeight:700}}>{l.owner.username}</Link>
                         <div className="muted" style={{fontSize:12}}>{l.owner.location}</div>
@@ -41,7 +41,7 @@ export default function Listings(){
             </div>
             <div style={{display:'flex',gap:8,marginTop:12}}>
               <Link to={'/listings/'+l._id} className="btn">View</Link>
-              <button className="btn ghost" onClick={()=> nav('/listings/'+l._id)}>Message seller</button>
+              <button type="button" className="btn ghost" onClick={()=> nav('/listings/'+l._id)}>Message seller</button>
             </div>
           </div>
         ))}
