@@ -24,7 +24,7 @@ export default function UserProfile(){
   return (
     <div className="page">
       <div style={{display:'flex',gap:12,alignItems:'center'}}>
-        <img src={user.profilePhotoUrl || 'https://via.placeholder.com/96'} alt="avatar" style={{width:96,height:96,objectFit:'cover',borderRadius:12}} />
+  <img src={user.profilePhotoUrl || 'https://via.placeholder.com/96'} alt="avatar" onError={(e)=>{ e.target.onerror=null; e.target.src='https://via.placeholder.com/96' }} style={{width:96,height:96,objectFit:'cover',borderRadius:12}} />
         <div>
           <h2 style={{margin:0}}>{user.fullName || user.username}</h2>
           <div className="muted">@{user.username}</div>
