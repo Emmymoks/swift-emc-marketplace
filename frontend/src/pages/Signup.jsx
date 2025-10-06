@@ -22,7 +22,7 @@ function SearchableCountrySelect({ value, onChange }){
   return (
     <div className="country-picker" ref={ref}>
       <button type="button" className="country-picker-toggle" onClick={()=>setOpen(v=>!v)}>
-        <img src={flagUrl(selected.code)} alt="flag" className="country-flag" onError={(e)=>{ e.target.style.display='none' }} />
+        <img src={flagUrl(selected.code)} alt="flag" className="country-flag" onError={(e)=>{ e.target.onerror=null; e.target.src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="34" height="18"><rect width="100%" height="100%" fill="%23eee"/></svg>' }} />
         <span className="country-name">{selected.name}</span>
         <span className="chev">▾</span>
       </button>
@@ -32,7 +32,7 @@ function SearchableCountrySelect({ value, onChange }){
           <div className="picker-list">
             {list.map(c=> (
               <button key={c.code} type="button" className="country-option" onClick={()=>{ onChange(c.code); setOpen(false); setFilter('') }}>
-                <img src={flagUrl(c.code)} alt="flag" className="country-flag" onError={(e)=>{ e.target.style.display='none' }} />
+                <img src={flagUrl(c.code)} alt="flag" className="country-flag" onError={(e)=>{ e.target.onerror=null; e.target.src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="34" height="18"><rect width="100%" height="100%" fill="%23eee"/></svg>' }} />
                 <div style={{flex:1,textAlign:'left'}}>{c.name} <span className="muted">{c.dial}</span></div>
               </button>
             ))}
@@ -47,7 +47,7 @@ function CountryDialSelect({ dial, onChange }){
   const match = countries.find(c=>c.dial===dial) || countries.find(c=>c.code==='US')
   return (
     <div style={{display:'flex',alignItems:'center',gap:8}}>
-      <img src={flagUrl(match.code)} alt="flag" className="country-flag dial-flag" onError={(e)=>{ e.target.style.display='none' }} />
+      <img src={flagUrl(match.code)} alt="flag" className="country-flag dial-flag" onError={(e)=>{ e.target.onerror=null; e.target.src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="34" height="18"><rect width="100%" height="100%" fill="%23eee"/></svg>' }} />
       <select style={{width:220}} value={dial||''} onChange={e=>onChange(e.target.value)}>
         {countries.map(c=> (<option key={c.code} value={c.dial}>{c.name} ({c.dial})</option>))}
       </select>
