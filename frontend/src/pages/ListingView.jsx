@@ -46,13 +46,13 @@ export default function ListingView(){
     <div className="page">
       <div style={{display:'flex',gap:12,alignItems:'center'}}>
         <div style={{width:160,height:120}}>
-          <img src={listing.images && listing.images[0] ? listing.images[0] : 'https://via.placeholder.com/320x240'} alt="listing" onError={(e)=>{ e.target.onerror=null; e.target.src='https://via.placeholder.com/320x240' }} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:8}} />
+            <img src={resolveImageUrl(listing.images && listing.images[0]) || PLACEHOLDER_320x240} alt="listing" onError={(e)=>{ e.target.onerror=null; e.target.src=PLACEHOLDER_320x240 }} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:8}} />
         </div>
         <div style={{flex:1}}>
           <h2 style={{margin:0}}>{listing.title}</h2>
           {listing.owner && (
             <div style={{display:'flex',alignItems:'center',gap:8,marginTop:6}}>
-              <img src={listing.owner.profilePhotoUrl || 'https://via.placeholder.com/48'} alt="owner" onError={(e)=>{ e.target.onerror=null; e.target.src='https://via.placeholder.com/48' }} style={{width:48,height:48,objectFit:'cover',borderRadius:8}} />
+              <img src={resolveImageUrl(listing.owner.profilePhotoUrl) || PLACEHOLDER_48} alt="owner" onError={(e)=>{ e.target.onerror=null; e.target.src=PLACEHOLDER_48 }} style={{width:48,height:48,objectFit:'cover',borderRadius:8}} />
               <div style={{flex:1}}>
                 <div style={{fontWeight:700}}><Link to={'/user/'+encodeURIComponent(listing.owner.username)}>@{listing.owner.username}</Link></div>
                 <div className="muted" style={{fontSize:12}}>{listing.owner.location}</div>
