@@ -78,8 +78,8 @@ p{color:var(--muted)}
 .btn.danger{background:var(--danger)}
 input,select,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(15,23,42,0.06);margin:6px 0 12px;outline:none;transition:box-shadow .12s,border-color .12s}
 input:focus,select:focus,textarea:focus{box-shadow:0 4px 18px rgba(124,92,255,0.08);border-color:rgba(124,92,255,0.18)}
-.form-row{display:flex;gap:8px}
-.form-col{flex:1}
+.form-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start}
+.form-col{flex:1;min-width:180px}
 .muted{color:var(--muted)}
 .admin-controls{display:flex;gap:8px;margin-top:8px}
 .chat-box{border:1px solid rgba(15,23,42,0.06);padding:12px;border-radius:10px}
