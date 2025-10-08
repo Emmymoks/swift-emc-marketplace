@@ -1,10 +1,7 @@
 // frontend/src/pages/Profile.jsx
 import React, { useEffect, useState, useRef, Suspense } from 'react'
 import axios from 'axios'
-import { io as ioClient } from 'socket.io-client'
-import { resolveImageUrl, PLACEHOLDER_96 } from '../lib/image'
 
-// Profile page
 export default function Profile() {
   const [me, setMe] = useState(null)
   const [edit, setEdit] = useState({})
@@ -13,44 +10,28 @@ export default function Profile() {
   const mounted = useRef(true)
   const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
-  // Cleanup ref
   useEffect(() => {
     mounted.current = true
-    return () => {
-      mounted.current = false
-    }
+    return () => { mounted.current = false }
   }, [])
 
-  // Load user profile
-  useEffect(() => {
-    loadProfile()
-    function onStorage() { loadProfile() }
-    window.addEventListener('storage', onStorage)
-    window.addEventListener('tokenChange', onStorage)
-    return () => { window.removeEventListener('storage', onStorage); window.removeEventListener('tokenChange', onStorage) }
-  }, [])
+  useEffect(()=>{ loadProfile() }, [])
 
   async function loadProfile() {
     try {
       const token = localStorage.getItem('token')
       if (!token) return
-
-      const { data } = await axios.get(`${baseUrl}/api/auth/profile`, {
-        headers: { Authorization: 'Bearer ' + token },
+      const { data } = await axios.get(`${baseUrl}/api/auth/profile`, { headers: { Authorization: 'Bearer ' + token } })
+      if (!mounted.current) return
+      setMe(data.user)
+      setEdit({
+        fullName: data.user.fullName || '',
+        email: data.user.email || '',
+        phone: data.user.phone || '',
+        location: data.user.location || '',
+        bio: data.user.bio || '',
+        profilePhotoUrl: data.user.profilePhotoUrl || ''
       })
-
-      if (mounted.current) {
-        setMe(data.user)
-        try{ localStorage.setItem('profile', JSON.stringify(data.user)) }catch(e){}
-        setEdit({
-          fullName: data.user.fullName || '',
-          email: data.user.email || '',
-          phone: data.user.phone || '',
-          location: data.user.location || '',
-          bio: data.user.bio || '',
-          profilePhotoUrl: data.user.profilePhotoUrl || '',
-        })
-      }
     } catch (e) {
       console.error('Profile load failed:', e)
       localStorage.removeItem('token')
@@ -58,189 +39,101 @@ export default function Profile() {
     }
   }
 
-  // Save profile edits
-  async function save(e) {
+  async function save(e){
     e?.preventDefault()
     setLoading(true)
-    try {
+    try{
       const token = localStorage.getItem('token')
-      const { data } = await axios.put(`${baseUrl}/api/auth/profile`, edit, {
-        headers: { Authorization: 'Bearer ' + token },
-      })
+      const { data } = await axios.put(`${baseUrl}/api/auth/profile`, edit, { headers: { Authorization: 'Bearer '+token } })
       if (mounted.current) {
         setMe(data.user)
-        try{ localStorage.setItem('profile', JSON.stringify(data.user)) }catch(e){}
         alert('Profile updated')
       }
-    } catch (err) {
-      alert(err?.response?.data?.error || 'Error updating profile')
-    }
+    }catch(err){ alert(err?.response?.data?.error || 'Error') }
     if (mounted.current) setLoading(false)
   }
 
-  // Upload image file
-  async function uploadFile(file) {
-    if (!file) return null
-    const fd = new FormData()
-    fd.append('file', file)
-    const res = await axios.post(`${baseUrl}/api/upload`, fd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+  async function uploadFile(file){
+    if(!file) return null
+    const fd = new FormData(); fd.append('file', file)
+    const res = await axios.post(`${baseUrl}/api/upload`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
     return res.data.url
   }
 
-  // Handle file selection and auto-save
-  async function onSelectFile(e) {
+  async function onSelectFile(e){
     const f = e.target.files && e.target.files[0]
-    if (!f) return
-    try {
+    if(!f) return
+    try{
       const url = await uploadFile(f)
-      const newEdit = { ...edit, profilePhotoUrl: url }
+      const newEdit = {...edit, profilePhotoUrl: url}
       setEdit(newEdit)
-      await save() // auto-save after upload
-    } catch (e) {
-      alert('Upload failed')
-    }
+      // auto-save profile photo change (no form submit event)
+      try{ await save() }catch(e){}
+    }catch(e){ alert('Upload failed') }
   }
 
-  // Password recovery
-  async function recoverPassword() {
+  async function recoverPassword(){
     const identifier = prompt('Enter your email or username to recover')
-    if (!identifier) return
-    try {
-      const res = await axios.post(`${baseUrl}/api/auth/recover`, {
-        emailOrUsername: identifier,
-      })
-      if (res.data.securityQuestion) {
+    if(!identifier) return
+    try{
+      const res = await axios.post(`${baseUrl}/api/auth/recover`, { emailOrUsername: identifier })
+      if(res.data.securityQuestion){
         const answer = prompt(res.data.securityQuestion)
         const newPassword = prompt('Enter new password')
-        if (!answer || !newPassword) return
-        await axios.post(`${baseUrl}/api/auth/recover`, {
-          emailOrUsername: identifier,
-          securityAnswer: answer,
-          newPassword,
-        })
-        alert('Password reset successful')
-      } else {
-        alert('Check your email or contact support')
-      }
-    } catch (e) {
-      alert('Password recovery failed')
-    }
+        if(!answer || !newPassword) return
+        await axios.post(`${baseUrl}/api/auth/recover`, { emailOrUsername: identifier, securityAnswer: answer, newPassword })
+        alert('Password reset')
+      } else alert('Check your email or contact support')
+    }catch(e){ alert('Recover failed') }
   }
 
-  // Dynamically load SupportChat once user is loaded
-  useEffect(() => {
+  // dynamically load SupportChat after profile is present to avoid runtime errors
+  useEffect(()=>{
     let active = true
     if (!me) return
-
-    // set up socket for direct user notifications and import support chat
-    const ws = import.meta.env.VITE_API_WS || (import.meta.env.VITE_API_URL || 'http://localhost:5000')
-    const s = ioClient(ws, { transports: ['websocket'], reconnection: true })
-    const room = `user:${me._id || me.id}`
-    s.on('connect', () => s.emit('joinRoom', room))
-    s.on('newMessage', (m) => {
-      // reserved for future toast/unread handling
+    import('../components/SupportChat').then(mod=>{
+      if(active && mounted.current) setSupportChatComponent(()=>mod.default)
+    }).catch(err=>{
+      console.warn('SupportChat import failed', err)
+      setSupportChatComponent(null)
     })
+    return ()=>{ active = false }
+  },[me])
 
-    import('../components/SupportChat')
-      .then((mod) => {
-        if (active && mounted.current) setSupportChatComponent(() => mod.default)
-      })
-      .catch((err) => {
-        console.error('SupportChat failed to load:', err)
-        setSupportChatComponent(null)
-      })
-
-    return () => {
-      active = false
-      try { s.emit('leaveRoom', room); s.disconnect() } catch (e) {}
-    }
-  }, [me])
-
-  if (!me)
-    return (
-      <div className="page">
-        <h2>Please log in to view your profile.</h2>
-      </div>
-    )
+  if(!me) return <div className="page"><h2>Please log in to view your profile.</h2></div>
 
   return (
     <>
       <div className="page">
         <h2>Your Profile</h2>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <img
-              src={resolveImageUrl(me.profilePhotoUrl) || PLACEHOLDER_96}
-              alt="avatar"
-              onError={(e)=>{ e.target.onerror=null; e.target.src=PLACEHOLDER_96 }}
-              style={{
-                width: 96,
-                height: 96,
-                borderRadius: 12,
-                objectFit: 'cover',
-              }}
-            />
+        <div style={{display:'flex',gap:12,alignItems:'center'}}>
+          <img src={me.profilePhotoUrl||'https://via.placeholder.com/96'} alt="avatar" style={{width:96,height:96,borderRadius:12,objectFit:'cover'}}/>
           <div>
-            <label className="btn ghost" style={{ display: 'inline-block' }}>
+            <label className="btn ghost" style={{display:'inline-block'}}>
               Change photo
-              <input
-                type="file"
-                accept="image/*"
-                onChange={onSelectFile}
-                style={{ display: 'none' }}
-              />
+              <input type="file" accept="image/*" onChange={onSelectFile} style={{display:'none'}} />
             </label>
           </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700 }}>{me.fullName}</div>
+          <div style={{flex:1}}>
+            <div style={{fontWeight:700}}>{me.fullName}</div>
             <div className="muted">{me.email}</div>
           </div>
         </div>
 
-        <form onSubmit={save} style={{ maxWidth: 640, marginTop: 12 }}>
-          <input
-            placeholder="Full name"
-            value={edit.fullName || ''}
-            onChange={(e) => setEdit({ ...edit, fullName: e.target.value })}
-          />
-          <input
-            placeholder="Email"
-            value={edit.email || ''}
-            onChange={(e) => setEdit({ ...edit, email: e.target.value })}
-          />
-          <input
-            placeholder="Phone"
-            value={edit.phone || ''}
-            onChange={(e) => setEdit({ ...edit, phone: e.target.value })}
-          />
-          <input
-            placeholder="Location"
-            value={edit.location || ''}
-            onChange={(e) => setEdit({ ...edit, location: e.target.value })}
-          />
-          {/* profile photo is handled via the Change photo button above; hide raw URL input */}
-          <textarea
-            placeholder="Bio"
-            value={edit.bio || ''}
-            onChange={(e) => setEdit({ ...edit, bio: e.target.value })}
-          />
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn" type="submit" disabled={loading}>
-              {loading ? 'Saving...' : 'Save Profile'}
-            </button>
-            <button
-              type="button"
-              className="btn ghost"
-              onClick={recoverPassword}
-            >
-              Reset Password
-            </button>
+        <form onSubmit={save} style={{maxWidth:640,marginTop:12}}>
+          <input placeholder="Full name" value={edit.fullName||''} onChange={e=>setEdit({...edit, fullName:e.target.value})} />
+          <input placeholder="Email" value={edit.email||''} onChange={e=>setEdit({...edit, email:e.target.value})} />
+          <input placeholder="Phone" value={edit.phone||''} onChange={e=>setEdit({...edit, phone:e.target.value})} />
+          <input placeholder="Location" value={edit.location||''} onChange={e=>setEdit({...edit, location:e.target.value})} />
+          <input placeholder="Profile photo URL" value={edit.profilePhotoUrl||''} onChange={e=>setEdit({...edit, profilePhotoUrl:e.target.value})} />
+          <textarea placeholder="Bio" value={edit.bio||''} onChange={e=>setEdit({...edit, bio:e.target.value})} />
+          <div style={{display:'flex',gap:8}}>
+            <button className="btn" type="submit" disabled={loading}>{loading? 'Saving...':'Save profile'}</button>
+            <button type="button" className="btn ghost" onClick={recoverPassword}>Reset password</button>
           </div>
         </form>
       </div>
 
-      {/* Safely load Support Chat */}
       <Suspense fallback={null}>
         {SupportChatComponent ? <SupportChatComponent user={me} /> : null}
       </Suspense>
