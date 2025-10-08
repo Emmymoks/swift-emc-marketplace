@@ -13,10 +13,12 @@ export default function Listings() {
 
   useEffect(() => {
     let mounted = true;
+
     axios
       .get(`${API}/api/listings`)
       .then((res) => {
         if (!mounted) return;
+        // ✅ Defensive: handle unexpected response shapes
         const listings = res.data?.listings || res.data || [];
         setList(Array.isArray(listings) ? listings : []);
       })
@@ -24,6 +26,7 @@ export default function Listings() {
         console.error("Failed to fetch listings:", err);
         setList([]);
       });
+
     return () => {
       mounted = false;
     };
@@ -39,12 +42,11 @@ export default function Listings() {
   };
 
   return (
-    <div className="p-6 bg-gray-900 min-h-screen">
-      {/* ✅ Now text will show white */}
-      <h2 className="text-3xl text-white font-bold mb-6">Browse Listings</h2>
+    <div className="p-6">
+      <h2 className="text-3xl font-bold mb-6">Browse Listings</h2>
 
       {list.length === 0 ? (
-        <div className="text-white text-center py-12">No listings found.</div>
+        <div className="text-gray-500 text-center py-12">No listings found.</div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {list.map((l) => {
@@ -66,9 +68,7 @@ export default function Listings() {
                   className="w-full h-48 object-cover rounded-xl mb-3"
                 />
 
-                <h3 className="font-semibold text-lg truncate text-gray-900">
-                  {l?.title || "Untitled"}
-                </h3>
+                <h3 className="font-semibold text-lg truncate">{l?.title || "Untitled"}</h3>
                 <p className="text-gray-600 text-sm line-clamp-3 mt-1 flex-1">
                   {l?.description || "No description provided."}
                 </p>
@@ -91,7 +91,7 @@ export default function Listings() {
                     <div>
                       <Link
                         to={`/user/${encodeURIComponent(owner.username)}`}
-                        className="font-medium text-gray-900 hover:underline"
+                        className="font-medium hover:underline"
                       >
                         @{owner.username}
                       </Link>
