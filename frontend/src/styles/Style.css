@@ -84,7 +84,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 4px 18px rgba(124,92,255,0.
 .admin-controls{display:flex;gap:8px;margin-top:8px}
 .chat-box{border:1px solid rgba(15,23,42,0.06);padding:12px;border-radius:10px}
 .msgs{max-height:260px;overflow:auto;padding:8px;background:linear-gradient(180deg, rgba(0,0,0,0.02), transparent);border-radius:8px}
-@media (max-width:720px){
+@media (max-width:900px){
   .site-header{flex-direction:column;align-items:flex-start}
   body{padding:12px}
   .page{padding:12px}
@@ -131,7 +131,7 @@ img{display:block;max-width:100%;height:auto;object-fit:cover}
 .hamburger .bar.open:nth-child(2){opacity:0}
 .hamburger .bar.open:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
 
-@media (max-width:720px){
+@media (max-width:900px){
   .site-nav{display:none}
   .mobile-controls{display:block}
   .site-nav-mobile{display:flex;flex-direction:column;gap:8px;margin-top:12px;overflow:hidden;max-height:0;transition:max-height .28s ease,opacity .18s;opacity:0}
