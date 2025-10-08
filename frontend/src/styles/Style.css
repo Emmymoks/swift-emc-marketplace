@@ -132,10 +132,11 @@ img{display:block;max-width:100%;height:auto;object-fit:cover}
 .hamburger .bar.open:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
 
 @media (max-width:900px){
-  .site-nav{display:none}
+  .site-nav{display:none !important}
   .mobile-controls{display:block}
-  .site-nav-mobile{display:flex;flex-direction:column;gap:8px;margin-top:12px;overflow:hidden;max-height:0;transition:max-height .28s ease,opacity .18s;opacity:0}
-  .site-nav-mobile.open{max-height:480px;opacity:1}
+  /* keep the mobile nav hidden until the hamburger toggles the open class */
+  .site-nav-mobile{display:none;flex-direction:column;gap:8px;margin-top:12px;overflow:hidden;max-height:0;transition:max-height .28s ease,opacity .18s;opacity:0}
+  .site-nav-mobile.open{display:flex;max-height:480px;opacity:1}
   .site-nav-mobile a{padding:10px;border-radius:8px;background:transparent;color:var(--muted);text-decoration:none}
   .site-nav-mobile .btn{width:100%}
 }
