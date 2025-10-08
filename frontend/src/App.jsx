@@ -88,6 +88,7 @@ export default function App(){
           {!token && <Link to="/signup">Sign up</Link>}
           {!token && <Link to="/login">Login</Link>}
           {token && <Link to="/profile">Profile</Link>}
+          {token && <Link to="/chats">Chats</Link>}
           {token && <Link to="/add-listing">Add listing</Link>}
           {token && <Link to="/my-listings">My listings</Link>}
           {token && <button type="button" className="btn ghost" onClick={e=>{ e.preventDefault(); handleSignOut(); }}>Sign out</button>}
