@@ -44,8 +44,11 @@ function SearchableCountrySelect({ value, onChange }){
   )
 }
 
-function CountryDialSelect({ dial, onChange }){
-  const match = countries.find(c=>c.dial===dial) || countries.find(c=>c.code==='US')
+function CountryDialSelect({ dial, country, onChange }){
+  // Prefer to show the dial matching the provided country first (handles +1 ambiguity)
+  let match = null
+  if(country) match = countries.find(c=>c.code === country)
+  if(!match) match = countries.find(c=>c.dial === dial) || countries.find(c=>c.code==='US')
   return (
     <div style={{display:'flex',alignItems:'center',gap:8}}>
       <img src={flagUrl(match.code)} alt="flag" className="country-flag dial-flag" onError={(e)=>{ e.target.onerror=null; e.target.src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="34" height="18"><rect width="100%" height="100%" fill="%23eee"/></svg>' }} />
@@ -105,9 +108,9 @@ export default function Signup(){
 
   <input placeholder="Username" value={form.username||''} onChange={e=>setField('username', e.target.value)} required/>
 
-      <div style={{display:'flex',gap:8}}>
-        <CountryDialSelect dial={form.dial} onChange={v=>setField('dial', v)} />
-        <input placeholder="Phone number" value={form.phoneNumber||''} onChange={e=>setField('phoneNumber', e.target.value)} />
+      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+        <CountryDialSelect dial={form.dial} country={form.country} onChange={v=>setField('dial', v)} />
+        <input placeholder="Phone number" value={form.phoneNumber||''} onChange={e=>setField('phoneNumber', e.target.value)} style={{flex:1,minWidth:160}} />
       </div>
 
   <input placeholder="Email" type="email" value={form.email||''} onChange={e=>setField('email', e.target.value)} required/>
