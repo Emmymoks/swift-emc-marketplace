@@ -51,6 +51,46 @@ router.post('/listings/:id/reject', adminAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// Delete listing (admin)
+router.delete('/listings/:id', adminAuth, async (req, res) => {
+  const l = await Listing.findById(req.params.id);
+  if (!l) return res.status(404).json({ error: 'Listing not found' });
+  await l.deleteOne();
+  res.json({ ok: true });
+});
+
+// List all listings
+router.get('/listings/all', adminAuth, async (req, res) => {
+  const listings = await Listing.find().populate('owner','username email').limit(500);
+  res.json({ listings });
+});
+
+// Get all reviews across listings
+router.get('/reviews', adminAuth, async (req, res) => {
+  try{
+    const results = [];
+    const listings = await Listing.find({ 'reviews.0': { $exists: true } }).select('title reviews');
+    for(const l of listings){
+      for(const r of l.reviews || []){
+        results.push({ listingId: l._id, listingTitle: l.title, review: r });
+      }
+    }
+    res.json({ reviews: results });
+  }catch(err){ console.error('reviews fetch error', err); res.status(500).json({ error: 'Server error' }) }
+});
+
+// Delete a review by its subdocument id
+router.delete('/reviews/:reviewId', adminAuth, async (req, res) => {
+  try{
+    const reviewId = req.params.reviewId;
+    const listing = await Listing.findOne({ 'reviews._id': reviewId });
+    if (!listing) return res.status(404).json({ error: 'Review not found' });
+    listing.reviews = listing.reviews.filter(r=> String(r._id) !== String(reviewId));
+    await listing.save();
+    res.json({ ok: true });
+  }catch(err){ console.error('delete review error', err); res.status(500).json({ error: 'Server error' }) }
+});
+
 // Find user by username
 router.get('/users', adminAuth, async (req, res) => {
   const { username } = req.query;
@@ -62,6 +102,31 @@ router.get('/users', adminAuth, async (req, res) => {
   if (!user) return res.status(404).json({ error: 'User not found' });
   const listings = await Listing.find({ owner: user._id }).limit(200);
   res.json({ user, listings, purchases: [] });
+});
+
+// List all users (paginated)
+router.get('/users/all', adminAuth, async (req, res) => {
+  const page = Math.max(0, parseInt(req.query.page || '0', 10));
+  const limit = Math.min(200, parseInt(req.query.limit || '50', 10));
+  const users = await User.find().select('-passwordHash -securityAnswerHash').skip(page * limit).limit(limit).lean();
+  res.json({ users });
+});
+
+// Delete a user and their listings/messages
+router.delete('/users/:id', adminAuth, async (req, res) => {
+  try {
+    const u = await User.findById(req.params.id);
+    if (!u) return res.status(404).json({ error: 'User not found' });
+    // delete listings
+    await Listing.deleteMany({ owner: u._id });
+    // delete messages where user was participant
+    await Message.deleteMany({ $or: [{ from: u._id }, { to: u._id }] });
+    await u.deleteOne();
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Admin delete user error', err);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 // Analytics overview
