@@ -1,5 +1,4 @@
-// frontend/src/pages/AdminPanel.jsx
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { io as ioClient } from 'socket.io-client'
 import axios from 'axios'
@@ -13,65 +12,61 @@ export default function AdminPanel(){
   const [searchUsername, setSearchUsername] = useState('');
   const [searchResult, setSearchResult] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [inbox, setInbox] = useState([]);
   const [msgRoom, setMsgRoom] = useState('');
   const [msgText, setMsgText] = useState('');
+  const [socket, setSocket] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const socketRef = useRef(null);
-  const mounted = useRef(true);
-  const nav = useNavigate();
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
-  const wsUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/^http/, 'ws')
+  const nav = useNavigate()
 
   useEffect(()=>{
-    mounted.current = true;
-    const sSecret = sessionStorage.getItem('admin_secret') || '';
-    if (!sSecret) {
-      nav('/admin-login');
-      return;
-    }
-    setSecret(sSecret);
-
-    // setup socket in a safe way
-    let sc;
+    // if admin secret not present, redirect to admin login
+    const s = sessionStorage.getItem('admin_secret') || '';
+    if (!s) nav('/admin-login');
+    // setup socket
     try{
-      sc = ioClient(wsUrl, { transports: ['websocket'], reconnection: true });
-      socketRef.current = sc;
-
-      sc.on('connect', () => {
-        console.log('Admin socket connected', sc.id);
+  const sc = ioClient(import.meta.env.VITE_API_URL || undefined);
+      setSocket(sc);
+      sc.on('admin:newMessage', (m)=>{
+        if(!m) return;
+        // add to inbox (dedupe by roomId, keep latest message preview)
+          setInbox(curr => {
+            const other = curr.filter(i=>i.roomId!==m.roomId);
+            // update unread count in localStorage
+            const key = `admin:unread:${m.roomId}`
+            const cur = parseInt(localStorage.getItem(key) || '0', 10) || 0
+            localStorage.setItem(key, String(cur+1))
+            return [{ roomId: m.roomId, text: m.text, from: m.from, unread: cur+1 }, ...other].slice(0,50);
+          });
+        setUnreadCount(c=>c+1);
+        // if admin currently viewing this room, append to messages list
+        setMessages(curr => (m.roomId === msgRoom ? [...curr, m] : curr));
       });
-
-      sc.on('admin:newMessage', (m) => {
-        if (!m) return;
-        // append message and increment unread
-        setMessages(curr => [...curr, m]);
-        setUnreadCount(c => c + 1);
+      sc.on('admin:user:signup', (payload)=>{
+        setAnalytics(a=> ({ ...(a||{}), totalUsers: payload.totalUsers }))
       });
+    }catch(e){ }
+    return ()=>{ try{ if(sc) sc.disconnect(); }catch(e){} }
+  },[])
 
-      sc.on('admin:user:signup', (payload) => {
-        setAnalytics(a => ({ ...(a||{}), totalUsers: payload.totalUsers }));
-      });
+  // load inbox from server (existing conversations)
+  async function loadInbox(){
+    try{
+      const res = await axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/recent-messages', { headers: { 'x-admin-secret': secret } });
+      const rooms = res.data.rooms || [];
+      setInbox(rooms.map(r=> ({ roomId: r.roomId, text: r.lastMessage.text, from: r.lastMessage.from, unread: parseInt(localStorage.getItem('admin:unread:'+r.roomId)||'0',10)||0 })));
+    }catch(e){ /* ignore */ }
+  }
 
-      sc.on('disconnect', (reason) => {
-        console.log('Admin socket disconnected', reason);
-      });
-    }catch(e){
-      console.warn('Failed to init admin socket', e);
-    }
-
-    return ()=> {
-      mounted.current = false;
-      try{ if(sc) { sc.disconnect(); socketRef.current = null; } } catch(e){}
-    }
-  },[nav, wsUrl]);
+  useEffect(()=>{ loadInbox() }, [])
 
   async function loadPending(){
     setError('');
     setLoading(true);
     try{
-      const secretToUse = secret || sessionStorage.getItem('admin_secret') || '';
-      const res = await axios.get(`${baseUrl}/api/admin/listings`, { headers: { 'x-admin-secret': secretToUse } });
+      const secretToUse = secret;
+      const res = await axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/listings', { headers: { 'x-admin-secret': secretToUse } });
       setPending(res.data.pending || []);
     }catch(e){
       setError('Failed to load pending listings.');
@@ -82,15 +77,14 @@ export default function AdminPanel(){
   async function approve(id){
     try{
       const secretToUse = secret || sessionStorage.getItem('admin_secret') || '';
-      await axios.post(`${baseUrl}/api/admin/listings/${id}/approve`, {}, { headers: { 'x-admin-secret': secretToUse } });
+      await axios.post((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/listings/'+id+'/approve', {}, { headers: { 'x-admin-secret': secretToUse } });
       setPending(p=>p.filter(x=>x._id!==id));
     }catch(e){ alert('Approve failed'); }
   }
-
   async function reject(id){
     try{
       const secretToUse = secret || sessionStorage.getItem('admin_secret') || '';
-      await axios.post(`${baseUrl}/api/admin/listings/${id}/reject`, {}, { headers: { 'x-admin-secret': secretToUse } });
+      await axios.post((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/listings/'+id+'/reject', {}, { headers: { 'x-admin-secret': secretToUse } });
       setPending(p=>p.filter(x=>x._id!==id));
     }catch(e){ alert('Reject failed'); }
   }
@@ -98,7 +92,7 @@ export default function AdminPanel(){
   async function loadAnalytics(){
     setLoading(true);
     try{
-      const res = await axios.get(`${baseUrl}/api/admin/analytics`, { headers: { 'x-admin-secret': secret } });
+      const res = await axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/analytics', { headers: { 'x-admin-secret': secret } });
       setAnalytics(res.data);
     }catch(err){ setError('Failed to load analytics'); }
     setLoading(false);
@@ -106,9 +100,9 @@ export default function AdminPanel(){
 
   async function searchUser(){
     if (!searchUsername) return;
-    setLoading(true); setSearchResult(null); setError('');
+    setLoading(true); setSearchResult(null);
     try{
-      const res = await axios.get(`${baseUrl}/api/admin/users`, { params: { username: searchUsername }, headers: { 'x-admin-secret': secret } });
+      const res = await axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/users', { params: { username: searchUsername }, headers: { 'x-admin-secret': secret } });
       setSearchResult(res.data);
     }catch(err){ setError('User not found or search failed'); }
     setLoading(false);
@@ -116,10 +110,12 @@ export default function AdminPanel(){
 
   async function loadMessages(){
     if (!msgRoom) return setError('Enter roomId to load messages');
-    setLoading(true); setError('');
+    setLoading(true);
     try{
-      const res = await axios.get(`${baseUrl}/api/admin/messages`, { params: { roomId: msgRoom }, headers: { 'x-admin-secret': secret } });
+      const res = await axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/messages', { params: { roomId: msgRoom }, headers: { 'x-admin-secret': secret } });
       setMessages(res.data.msgs || []);
+      // clear unread for this room
+      try{ localStorage.setItem('admin:unread:'+msgRoom, '0'); setInbox(curr=>curr.map(i=> i.roomId===msgRoom? {...i, unread:0}: i)); setUnreadCount(0); }catch(e){}
     }catch(err){ setError('Failed to load messages'); }
     setLoading(false);
   }
@@ -127,8 +123,11 @@ export default function AdminPanel(){
   async function replyMessage(){
     if (!msgRoom || !msgText) return;
     try{
-      const toId = messages[0] ? (messages[0].from?._id || messages[0].to?._id) : null;
-      const res = await axios.post(`${baseUrl}/api/admin/messages/reply`, { roomId: msgRoom, toId, text: msgText }, { headers: { 'x-admin-secret': secret } });
+      // determine reply target: pick last non-null 'from' user in messages for the room
+      const target = messages.slice().reverse().find(m=>m.from && m.from._id) || messages[0]
+      const toId = target ? (target.from?._id || target.to?._id) : null
+      const res = await axios.post((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/messages/reply', { roomId: msgRoom, toId, text: msgText }, { headers: { 'x-admin-secret': secret } });
+      // append locally
       setMessages(m=>[...m, res.data.msg]);
       setMsgText('');
     }catch(err){ alert('Send failed'); }
@@ -137,7 +136,7 @@ export default function AdminPanel(){
   return (
     <div className="page">
       <h2>Admin Panel</h2>
-      <div style={{display:'flex',gap:16,alignItems:'flex-start'}}>
+      <div style={{display:'flex',gap:16,alignItems:'center'}}>
         <div style={{flex:1}}>
           <h4>Pending listings</h4>
           <div style={{marginBottom:8}}>
@@ -146,7 +145,7 @@ export default function AdminPanel(){
             <button className="btn" onClick={loadAnalytics} style={{marginLeft:8}}>Load analytics</button>
           </div>
           {error && <div style={{color:'var(--danger)',marginTop:8}}>{error}</div>}
-          <div className="grid listings-grid" style={{marginTop:8}}>
+          <div className="grid listings-grid">
             {pending.length===0 && <div className="muted">No pending listings</div>}
             {pending.map(l=> (
               <div key={l._id} className="card">
@@ -190,8 +189,21 @@ export default function AdminPanel(){
 
           <h4 style={{marginTop:12}}>Messages / complaints {unreadCount>0 && <span style={{background:'var(--accent)',color:'#fff',borderRadius:12,padding:'2px 8px',fontSize:12,marginLeft:8}}>{unreadCount}</span>}</h4>
           <div style={{display:'flex',gap:8}}>
-            <input placeholder="roomId" value={msgRoom} onChange={e=>setMsgRoom(e.target.value)} />
-            <button className="btn" onClick={()=>{ loadMessages(); setUnreadCount(0); }}>Load</button>
+            <div style={{flex:1}}>
+              <div style={{fontSize:13,fontWeight:700}}>Inbox</div>
+              <div style={{maxHeight:120,overflow:'auto',marginTop:8}}>
+                {inbox.length===0 && <div className="muted">No messages</div>}
+                {inbox.map(i=> (
+                  <div key={i.roomId} className="card" style={{marginBottom:6,cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'}} onClick={()=>{ setMsgRoom(i.roomId); loadMessages(); setUnreadCount(0); }}>
+                    <div>
+                      <div style={{fontWeight:700}}>{i.from?.username || 'User'}</div>
+                      <div className="muted">{i.text}</div>
+                    </div>
+                    {i.unread>0 && <div style={{background:'var(--danger)',color:'#fff',borderRadius:12,padding:'6px 10px',fontSize:12}}>{i.unread}</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
           <div style={{maxHeight:220,overflow:'auto',marginTop:8}}>
             {messages.length===0 && <div className="muted">No messages loaded</div>}
