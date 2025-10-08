@@ -122,7 +122,7 @@ export default function ListingView() {
               />
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 700 }}>
-                  <Link to={`/user/${encodeURIComponent(listing.owner.username)}`}>@{listing.owner.username}</Link>
+                  <Link to={`/user/${encodeURIComponent(listing.owner.username)}`} className="no-underline">@{listing.owner.username}</Link>
                 </div>
                 <div className="muted" style={{ fontSize: 12 }}>{listing.owner.location}</div>
               </div>
