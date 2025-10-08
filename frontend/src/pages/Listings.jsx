@@ -3,7 +3,6 @@ import { resolveImageUrl, PLACEHOLDER_280x200, PLACEHOLDER_48 } from "../lib/ima
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import ChatPopover from "../components/ChatPopover";
-import { MessageSquare, Eye } from "lucide-react";
 
 export default function Listings() {
   const [list, setList] = useState([]);
@@ -29,7 +28,7 @@ export default function Listings() {
           {list.map((l) => (
             <div
               key={l._id}
-              className="bg-white rounded-2xl shadow-md hover:shadow-lg transition p-4 flex flex-col"
+              className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-200 p-4 flex flex-col"
             >
               <img
                 src={resolveImageUrl(l.images?.[0]) || PLACEHOLDER_280x200}
@@ -44,8 +43,8 @@ export default function Listings() {
               <p className="text-gray-600 text-sm line-clamp-3 mt-1 flex-1">
                 {l.description}
               </p>
-              <div className="mt-3 font-semibold text-primary">
-                {l.price} {l.currency}
+              <div className="mt-3 font-semibold text-blue-600">
+                💲 {l.price} {l.currency}
               </div>
 
               {l.owner && (
@@ -71,9 +70,9 @@ export default function Listings() {
               <div className="flex gap-3 mt-5">
                 <Link
                   to={`/listings/${l._id}`}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition text-sm"
+                  className="flex-1 text-center bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition text-sm"
                 >
-                  <Eye className="w-4 h-4" /> View
+                  👁️ View
                 </Link>
                 <button
                   onClick={() => {
@@ -81,9 +80,9 @@ export default function Listings() {
                     if (!token) return nav(`/listings/${l._id}`);
                     setActiveChat(l._id);
                   }}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 transition text-sm"
+                  className="flex-1 text-center bg-gray-100 hover:bg-gray-200 transition px-3 py-2 rounded-lg text-sm"
                 >
-                  <MessageSquare className="w-4 h-4" /> Message
+                  💬 Message
                 </button>
               </div>
 
