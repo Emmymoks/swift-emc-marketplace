@@ -165,7 +165,6 @@ export default function AdminPanel(){
         <h4>Pending Listings</h4>
         <div style={{marginBottom:8}}>
           <button className="btn" onClick={loadPending} disabled={loading}>{loading? 'Loading...':'Refresh'}</button>
-          <button className="btn ghost" onClick={()=>setPending([])} style={{marginLeft:8}}>Clear</button>
           <button className="btn" onClick={loadAnalytics} style={{marginLeft:8}}>Load Analytics</button>
         </div>
         {error && <div style={{color:'var(--danger)',marginTop:8}}>{error}</div>}
