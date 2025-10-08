@@ -45,15 +45,21 @@ function SearchableCountrySelect({ value, onChange }){
 }
 
 function CountryDialSelect({ dial, country, onChange }){
-  // Prefer to show the dial matching the provided country first (handles +1 ambiguity)
+  // Prefer to show the dial/flag matching the provided country first (handles +1 ambiguity)
   let match = null
   if(country) match = countries.find(c=>c.code === country)
   if(!match) match = countries.find(c=>c.dial === dial) || countries.find(c=>c.code==='US')
+  // We'll emit the selected country code + dial as a pair when user changes selection
+  function handleChange(e){
+    const val = e.target.value // this will be like "US|+1"
+    const [code, selectedDial] = String(val).split('|')
+    onChange({ code, dial: selectedDial })
+  }
   return (
     <div style={{display:'flex',alignItems:'center',gap:8}}>
       <img src={flagUrl(match.code)} alt="flag" className="country-flag dial-flag" onError={(e)=>{ e.target.onerror=null; e.target.src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="34" height="18"><rect width="100%" height="100%" fill="%23eee"/></svg>' }} />
-      <select style={{width:220}} value={dial||''} onChange={e=>onChange(e.target.value)}>
-        {countries.map(c=> (<option key={c.code} value={c.dial}>{c.name} ({c.dial})</option>))}
+      <select style={{width:220}} value={`${match.code}|${match.dial}`} onChange={handleChange}>
+        {countries.map(c=> (<option key={c.code} value={`${c.code}|${c.dial}`}>{c.name} ({c.dial})</option>))}
       </select>
     </div>
   )
@@ -109,7 +115,7 @@ export default function Signup(){
   <input placeholder="Username" value={form.username||''} onChange={e=>setField('username', e.target.value)} required/>
 
       <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-        <CountryDialSelect dial={form.dial} country={form.country} onChange={v=>setField('dial', v)} />
+  <CountryDialSelect dial={form.dial} country={form.country} onChange={(v)=>{ if(v && v.code){ setField('country', v.code); } if(v && v.dial){ setField('dial', v.dial); } }} />
         <input placeholder="Phone number" value={form.phoneNumber||''} onChange={e=>setField('phoneNumber', e.target.value)} style={{flex:1,minWidth:160}} />
       </div>
 
