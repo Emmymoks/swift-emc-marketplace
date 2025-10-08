@@ -43,10 +43,10 @@ export default function Listings() {
 
   return (
     <div className="p-6">
-      <h2 className="text-3xl font-bold mb-6">Browse Listings</h2>
+      <h2 className="text-white-3xl font-bold mb-6">Browse Listings</h2>
 
       {list.length === 0 ? (
-        <div className="text-gray-500 text-center py-12">No listings found.</div>
+        <div className="text-white-500 text-center py-12">No listings found.</div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {list.map((l) => {
