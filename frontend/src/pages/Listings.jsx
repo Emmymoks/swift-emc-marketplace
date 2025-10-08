@@ -1,61 +1,103 @@
-import React, { useEffect, useState } from 'react'
-import { resolveImageUrl, PLACEHOLDER_280x200, PLACEHOLDER_48 } from '../lib/image'
-import axios from 'axios'
-import { Link, useNavigate } from 'react-router-dom'
-import ChatPopover from '../components/ChatPopover'
+import React, { useEffect, useState } from "react";
+import { resolveImageUrl, PLACEHOLDER_280x200, PLACEHOLDER_48 } from "../lib/image";
+import axios from "axios";
+import { Link, useNavigate } from "react-router-dom";
+import ChatPopover from "../components/ChatPopover";
+import { MessageSquare, Eye } from "lucide-react";
 
-export default function Listings(){
+export default function Listings() {
   const [list, setList] = useState([]);
-  const nav = useNavigate()
-  useEffect(()=> {
-    axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/listings')
-      .then(res=>setList(res.data.listings || []))
-      .catch(()=>setList([]));
+  const [activeChat, setActiveChat] = useState(null);
+  const nav = useNavigate();
+  const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+  useEffect(() => {
+    axios
+      .get(`${API}/api/listings`)
+      .then((res) => setList(res.data.listings || []))
+      .catch(() => setList([]));
   }, []);
-  const [activeChat, setActiveChat] = useState(null) // listing id currently chatted
 
   return (
-    <div className="page">
-      <h2>Browse Listings</h2>
-      {list.length===0 ? <div className="muted">No listings found</div> : (
-      <div className="grid listings-grid">
-        {list.map(l=>(
-          <div key={l._id} className="card listing-card">
-            <div style={{display:'flex',gap:12}}>
-                <div style={{width:140,height:100,flex:'0 0 140px'}}>
-                <img src={resolveImageUrl(l.images && l.images[0]) || PLACEHOLDER_280x200} alt="listing" onError={(e)=>{ e.target.onerror=null; e.target.src=PLACEHOLDER_280x200 }} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:8}} />
+    <div className="p-6">
+      <h2 className="text-3xl font-bold mb-6">Browse Listings</h2>
+
+      {list.length === 0 ? (
+        <div className="text-gray-500 text-center py-12">No listings found.</div>
+      ) : (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {list.map((l) => (
+            <div
+              key={l._id}
+              className="bg-white rounded-2xl shadow-md hover:shadow-lg transition p-4 flex flex-col"
+            >
+              <img
+                src={resolveImageUrl(l.images?.[0]) || PLACEHOLDER_280x200}
+                onError={(e) => {
+                  e.target.src = PLACEHOLDER_280x200;
+                }}
+                alt="listing"
+                className="w-full h-48 object-cover rounded-xl mb-3"
+              />
+
+              <h3 className="font-semibold text-lg truncate">{l.title}</h3>
+              <p className="text-gray-600 text-sm line-clamp-3 mt-1 flex-1">
+                {l.description}
+              </p>
+              <div className="mt-3 font-semibold text-primary">
+                {l.price} {l.currency}
               </div>
-              <div style={{flex:1}}>
-                <h3 style={{marginTop:0}}>{l.title}</h3>
-                <p className="muted" style={{margin:'6px 0'}}>{l.description?.slice(0,180)}</p>
-                <p style={{margin:'6px 0'}}><strong>{l.price} {l.currency}</strong></p>
-                <div style={{display:'flex',alignItems:'center',gap:8,marginTop:8}}>
-                  {l.owner && (
-                    <>
-                        <img src={resolveImageUrl(l.owner.profilePhotoUrl) || PLACEHOLDER_48} alt="owner" onError={(e)=>{ e.target.onerror=null; e.target.src=PLACEHOLDER_48 }} style={{width:48,height:48,objectFit:'cover',borderRadius:8}} />
-                              <div style={{display:'flex',flexDirection:'column'}}>
-                                <Link to={'/user/'+encodeURIComponent(l.owner.username)} style={{fontWeight:700}} className="no-underline">{l.owner.username}</Link>
-                                <div className="muted" style={{fontSize:12}}>{l.owner.location}</div>
-                              </div>
-                    </>
-                  )}
+
+              {l.owner && (
+                <div className="flex items-center gap-3 mt-4">
+                  <img
+                    src={resolveImageUrl(l.owner.profilePhotoUrl) || PLACEHOLDER_48}
+                    onError={(e) => (e.target.src = PLACEHOLDER_48)}
+                    alt="owner"
+                    className="w-10 h-10 rounded-lg object-cover"
+                  />
+                  <div>
+                    <Link
+                      to={`/user/${encodeURIComponent(l.owner.username)}`}
+                      className="font-medium hover:underline"
+                    >
+                      @{l.owner.username}
+                    </Link>
+                    <div className="text-gray-500 text-xs">{l.owner.location}</div>
+                  </div>
                 </div>
+              )}
+
+              <div className="flex gap-3 mt-5">
+                <Link
+                  to={`/listings/${l._id}`}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition text-sm"
+                >
+                  <Eye className="w-4 h-4" /> View
+                </Link>
+                <button
+                  onClick={() => {
+                    const token = localStorage.getItem("token");
+                    if (!token) return nav(`/listings/${l._id}`);
+                    setActiveChat(l._id);
+                  }}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 transition text-sm"
+                >
+                  <MessageSquare className="w-4 h-4" /> Message
+                </button>
               </div>
-            </div>
-                <div style={{display:'flex',gap:8,marginTop:12}}>
-              <Link to={'/listings/'+l._id} className="btn">View</Link>
-              <button type="button" className="btn ghost" onClick={()=>{
-                const token = localStorage.getItem('token')
-                if(!token){ nav('/listings/'+l._id); return }
-                setActiveChat(l._id)
-              }}>Message seller</button>
+
               {activeChat === l._id && (
-                <ChatPopover listingId={l._id} sellerId={l.owner && l.owner._id} onClose={()=>setActiveChat(null)} />
+                <ChatPopover
+                  listingId={l._id}
+                  sellerId={l.owner?._id}
+                  onClose={() => setActiveChat(null)}
+                />
               )}
             </div>
-          </div>
-        ))}
-      </div>)}
+          ))}
+        </div>
+      )}
     </div>
-  )
+  );
 }
