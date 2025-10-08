@@ -22,9 +22,9 @@ export default function Home(){
 
   // Demo items fallback
   const DEMO_ITEMS = [
-    { _id:'demo1', title:'Vintage Camera', price:120, currency:'USD', images:['https://images.unsplash.com/photo-1519183071298-a2962be90b07?auto=format&fit=crop&w=800&q=60'], description:'Classic 35mm camera in working condition.' },
+  { _id:'demo1', title:'Vintage Camera', price:120, currency:'USD', images:['https://images.unsplash.com/photo-1484704849700-f032a568e944?auto=format&fit=crop&w=800&q=60'], description:'Classic 35mm camera in working condition.' },
     { _id:'demo2', title:'Mountain Bike', price:450, currency:'USD', images:['https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=800&q=60'], description:'Hardtail bike, great for trails.' },
-    { _id:'demo3', title:'iPhone 12', price:350, currency:'USD', images:['https://images.unsplash.com/photo-1603898037225-4f1c4ee5b0e2?auto=format&fit=crop&w=800&q=60'], description:'Used phone with new battery.' },
+  { _id:'demo3', title:'iPhone 12', price:350, currency:'USD', images:['https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=800&q=60'], description:'Used phone with new battery.' },
     { _id:'demo4', title:'Wooden Desk', price:200, currency:'USD', images:['https://images.unsplash.com/photo-1499955085172-a104c9463ece?auto=format&fit=crop&w=800&q=60'], description:'Sturdy desk for home office.' },
     { _id:'demo5', title:'Acoustic Guitar', price:220, currency:'USD', images:['https://images.unsplash.com/photo-1511376777868-611b54f68947?auto=format&fit=crop&w=800&q=60'], description:'Great tone, minor wear.' },
     { _id:'demo6', title:'Coffee Maker', price:45, currency:'USD', images:['https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=800&q=60'], description:'Brews excellent coffee.' },
