@@ -3,7 +3,6 @@ import axios from "axios";
 import { useParams, Link } from "react-router-dom";
 import io from "socket.io-client";
 import ChatPopover from "../components/ChatPopover";
-import { Send, Star } from "lucide-react";
 
 const PLACEHOLDER_320x240 = "https://via.placeholder.com/320x240?text=No+Image";
 const PLACEHOLDER_48 = "https://via.placeholder.com/48";
@@ -91,6 +90,7 @@ export default function ListingView() {
 
   return (
     <div className="p-6 space-y-6">
+      {/* Top Section */}
       <div className="flex flex-col md:flex-row gap-6">
         <img
           src={resolveImageUrl(listing.images?.[0]) || PLACEHOLDER_320x240}
@@ -102,8 +102,8 @@ export default function ListingView() {
         <div className="flex-1 space-y-3">
           <h2 className="text-3xl font-bold">{listing.title}</h2>
           <p className="text-gray-700">{listing.description}</p>
-          <p className="text-lg font-semibold">
-            {listing.price} {listing.currency}
+          <p className="text-lg font-semibold text-blue-600">
+            💲 {listing.price} {listing.currency}
           </p>
 
           {listing.owner && (
@@ -127,7 +127,7 @@ export default function ListingView() {
                 onClick={() => setOpenChat(true)}
                 className="ml-auto px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition text-sm"
               >
-                Message Seller
+                💬 Message Seller
               </button>
             </div>
           )}
@@ -146,11 +146,12 @@ export default function ListingView() {
                 key={m._id || m._tempId || i}
                 className={`p-2 rounded-lg text-sm ${
                   m.from === "me"
-                    ? "bg-blue-100 self-end text-right"
+                    ? "bg-blue-100 text-right"
                     : "bg-gray-100 text-left"
                 }`}
               >
-                <b>{m.from?.username || (m.from === "me" ? "You" : "User")}:</b> {m.text}
+                <b>{m.from?.username || (m.from === "me" ? "You" : "User")}:</b>{" "}
+                {m.text}
               </div>
             ))
           )}
@@ -165,9 +166,9 @@ export default function ListingView() {
           />
           <button
             onClick={send}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-1"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
           >
-            <Send className="w-4 h-4" /> Send
+            Send ➤
           </button>
         </div>
       </div>
@@ -183,7 +184,7 @@ export default function ListingView() {
           >
             {[5, 4, 3, 2, 1].map((v) => (
               <option key={v} value={v}>
-                {v} {v > 1 ? "stars" : "star"}
+                {v} ⭐
               </option>
             ))}
           </select>
@@ -197,7 +198,7 @@ export default function ListingView() {
             onClick={submitReview}
             className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
           >
-            Submit
+            Submit ✅
           </button>
         </div>
 
@@ -206,10 +207,8 @@ export default function ListingView() {
             <h5 className="font-semibold">Reviews</h5>
             {listing.reviews.map((r) => (
               <div key={r._id} className="border rounded-lg p-3 bg-gray-50">
-                <div className="flex items-center gap-1 text-yellow-500">
-                  {Array.from({ length: r.rating }).map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-yellow-400" />
-                  ))}
+                <div className="text-yellow-500 mb-1">
+                  {"⭐".repeat(r.rating)}
                 </div>
                 <p className="text-gray-700">{r.comment}</p>
               </div>
