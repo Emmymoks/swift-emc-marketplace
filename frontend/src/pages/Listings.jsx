@@ -33,10 +33,10 @@ export default function Listings(){
                   {l.owner && (
                     <>
                         <img src={resolveImageUrl(l.owner.profilePhotoUrl) || PLACEHOLDER_48} alt="owner" onError={(e)=>{ e.target.onerror=null; e.target.src=PLACEHOLDER_48 }} style={{width:48,height:48,objectFit:'cover',borderRadius:8}} />
-                      <div style={{display:'flex',flexDirection:'column'}}>
-                        <Link to={'/user/'+encodeURIComponent(l.owner.username)} style={{fontWeight:700}}>{l.owner.username}</Link>
-                        <div className="muted" style={{fontSize:12}}>{l.owner.location}</div>
-                      </div>
+                              <div style={{display:'flex',flexDirection:'column'}}>
+                                <Link to={'/user/'+encodeURIComponent(l.owner.username)} style={{fontWeight:700}} className="no-underline">{l.owner.username}</Link>
+                                <div className="muted" style={{fontSize:12}}>{l.owner.location}</div>
+                              </div>
                     </>
                   )}
                 </div>
