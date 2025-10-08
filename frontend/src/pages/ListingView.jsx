@@ -83,6 +83,20 @@ export default function ListingView() {
     setText('');
   }
 
+  // Submit review
+  const [rating, setRating] = useState(5)
+  const [comment, setComment] = useState('')
+  async function submitReview(){
+    const token = localStorage.getItem('token')
+    if(!token) return alert('Please log in to review')
+    try{
+      const res = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/listings/${id}/review`, { rating, comment }, { headers: { Authorization: 'Bearer '+token } })
+      setListing(res.data.listing)
+      setComment('')
+      alert('Thanks for your review')
+    }catch(e){ alert('Review failed') }
+  }
+
   if (!listing) return <div className="page">Loading...</div>;
 
   return (
@@ -136,6 +150,28 @@ export default function ListingView() {
           <input value={text} onChange={e => setText(e.target.value)} placeholder="Message..." />
           <button className="btn" onClick={send}>Send</button>
         </div>
+      </div>
+
+      <div style={{marginTop:18}} className="card">
+        <h4>Leave a review</h4>
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+          <select value={rating} onChange={e=>setRating(Number(e.target.value))}>
+            {[5,4,3,2,1].map(v=> <option key={v} value={v}>{v} star{v>1?'s':''}</option>)}
+          </select>
+          <input value={comment} onChange={e=>setComment(e.target.value)} placeholder="Write a short comment" />
+          <button className="btn" onClick={submitReview}>Submit</button>
+        </div>
+        {listing.reviews && listing.reviews.length>0 && (
+          <div style={{marginTop:12}}>
+            <h5>Reviews</h5>
+            {listing.reviews.map(r=> (
+              <div key={r._id} className="card" style={{marginBottom:6}}>
+                <div style={{fontWeight:700}}>{r.rating} ★</div>
+                <div className="muted">{r.comment}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {openChat && (
