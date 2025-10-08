@@ -20,6 +20,23 @@ export default function Home(){
     return ()=> mounted = false
   },[])
 
+  // Demo items fallback
+  const DEMO_ITEMS = [
+    { _id:'demo1', title:'Vintage Camera', price:120, currency:'USD', images:['https://images.unsplash.com/photo-1519183071298-a2962be90b07?auto=format&fit=crop&w=800&q=60'], description:'Classic 35mm camera in working condition.' },
+    { _id:'demo2', title:'Mountain Bike', price:450, currency:'USD', images:['https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=800&q=60'], description:'Hardtail bike, great for trails.' },
+    { _id:'demo3', title:'iPhone 12', price:350, currency:'USD', images:['https://images.unsplash.com/photo-1603898037225-4f1c4ee5b0e2?auto=format&fit=crop&w=800&q=60'], description:'Used phone with new battery.' },
+    { _id:'demo4', title:'Wooden Desk', price:200, currency:'USD', images:['https://images.unsplash.com/photo-1499955085172-a104c9463ece?auto=format&fit=crop&w=800&q=60'], description:'Sturdy desk for home office.' },
+    { _id:'demo5', title:'Acoustic Guitar', price:220, currency:'USD', images:['https://images.unsplash.com/photo-1511376777868-611b54f68947?auto=format&fit=crop&w=800&q=60'], description:'Great tone, minor wear.' },
+    { _id:'demo6', title:'Coffee Maker', price:45, currency:'USD', images:['https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=800&q=60'], description:'Brews excellent coffee.' },
+    { _id:'demo7', title:'Used Textbooks', price:30, currency:'USD', images:['https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=800&q=60'], description:'College textbooks bundle.' },
+    { _id:'demo8', title:'Garden Tools Set', price:60, currency:'USD', images:['https://images.unsplash.com/photo-1518976024611-3f9a4c0aef1a?auto=format&fit=crop&w=800&q=60'], description:'Set includes spade, rake, and shears.' },
+    { _id:'demo9', title:'Laptop Stand', price:25, currency:'USD', images:['https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=800&q=60'], description:'Aluminum adjustable stand.' },
+    { _id:'demo10', title:'Fitness Mat', price:20, currency:'USD', images:['https://images.unsplash.com/photo-1599058917215-5e3a5b0b9d2e?auto=format&fit=crop&w=800&q=60'], description:'Non-slip yoga/fitness mat.' }
+  ]
+
+  // if no listings are loaded, show demo items as a friendly fallback
+  const visibleListings = (listings && listings.length>0) ? listings : DEMO_ITEMS
+
   async function handleSearch(q){
     setQuery(q)
     if(timer.current) clearTimeout(timer.current)
@@ -73,7 +90,7 @@ export default function Home(){
         <div className="hero-right">
           <div className="featured-grid">
             {loading ? <div className="muted">Loading featured...</div> : (
-              listings.slice(0,4).map(l=> (
+              visibleListings.slice(0,6).map(l=> (
                 <Link key={l._id} to={`/listing/${l._id}`} className="card featured">
                   <img src={resolveImageUrl((l.images && l.images[0])||'')} alt={l.title} onError={(e)=>{ e.target.src='https://via.placeholder.com/320x240' }} />
                   <div style={{padding:8}}>
