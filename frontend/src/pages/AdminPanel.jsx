@@ -9,6 +9,9 @@ export default function AdminPanel(){
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [analytics, setAnalytics] = useState(null);
+  const [allUsers, setAllUsers] = useState([]);
+  const [allListings, setAllListings] = useState([]);
+  const [allReviews, setAllReviews] = useState([]);
   const [searchUsername, setSearchUsername] = useState('');
   const [searchResult, setSearchResult] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -61,6 +64,13 @@ export default function AdminPanel(){
 
   useEffect(()=>{ loadInbox() }, [])
 
+  useEffect(()=>{
+    // load admin lists
+    loadAllUsers();
+    loadAllListings();
+    loadAllReviews();
+  }, [])
+
   async function loadPending(){
     setError('');
     setLoading(true);
@@ -97,6 +107,31 @@ export default function AdminPanel(){
     }catch(err){ setError('Failed to load analytics'); }
     setLoading(false);
   }
+
+  async function loadAllUsers(){
+    try{
+      const res = await axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/users/all', { headers: { 'x-admin-secret': secret } });
+      setAllUsers(res.data.users || [])
+    }catch(e){ }
+  }
+
+  async function loadAllListings(){
+    try{
+      const res = await axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/listings/all', { headers: { 'x-admin-secret': secret } });
+      setAllListings(res.data.listings || [])
+    }catch(e){}
+  }
+
+  async function loadAllReviews(){
+    try{
+      const res = await axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/reviews', { headers: { 'x-admin-secret': secret } });
+      setAllReviews(res.data.reviews || [])
+    }catch(e){}
+  }
+
+  async function deleteUser(id){ if(!confirm('Delete user and their data?')) return; try{ await axios.delete((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/users/'+id, { headers: { 'x-admin-secret': secret } }); setAllUsers(u=> u.filter(x=> x._id !== id)); }catch(e){ alert('Delete failed') } }
+  async function deleteListing(id){ if(!confirm('Delete listing?')) return; try{ await axios.delete((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/listings/'+id, { headers: { 'x-admin-secret': secret } }); setAllListings(l=> l.filter(x=> x._id !== id)); }catch(e){ alert('Delete failed') } }
+  async function deleteReview(id){ if(!confirm('Delete review?')) return; try{ await axios.delete((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/reviews/'+id, { headers: { 'x-admin-secret': secret } }); setAllReviews(r=> r.filter(x=> String(x.review._id) !== String(id))); }catch(e){ alert('Delete failed') } }
 
   async function searchUser(){
     if (!searchUsername) return;
@@ -176,6 +211,44 @@ export default function AdminPanel(){
           <div style={{display:'flex',gap:8}}>
             <input placeholder="username" value={searchUsername} onChange={e=>setSearchUsername(e.target.value)} />
             <button className="btn" onClick={searchUser}>Search</button>
+          </div>
+          <div style={{marginTop:12}}>
+            <h4>All Users</h4>
+            <div className="card" style={{maxHeight:160,overflow:'auto'}}>
+              {allUsers.length===0 && <div className="muted">No users loaded</div>}
+              {allUsers.map(u=> (
+                <div key={u._id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:8}}>
+                  <div>{u.username} <div className="muted" style={{fontSize:12}}>{u.email}</div></div>
+                  <div><button className="btn danger" onClick={()=>deleteUser(u._id)}>Delete</button></div>
+                </div>
+              ))}
+            </div>
+            <div style={{marginTop:8}}>
+              <h4>All Listings</h4>
+              <div className="card" style={{maxHeight:160,overflow:'auto'}}>
+                {allListings.length===0 && <div className="muted">No listings loaded</div>}
+                {allListings.map(l=> (
+                  <div key={l._id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:8}}>
+                    <div><strong>{l.title}</strong><div className="muted">by {l.owner?.username}</div></div>
+                    <div><button className="btn danger" onClick={()=>deleteListing(l._id)}>Delete</button></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{marginTop:8}}>
+              <h4>All Reviews</h4>
+              <div className="card" style={{maxHeight:160,overflow:'auto'}}>
+                {allReviews.length===0 && <div className="muted">No reviews</div>}
+                {allReviews.map(rv=> (
+                  <div key={rv.review._id} style={{padding:8,borderBottom:'1px solid #eee'}}>
+                    <div style={{fontWeight:700}}>{rv.review.rating} ★ — {rv.listingTitle}</div>
+                    <div className="muted">{rv.review.comment}</div>
+                    <div style={{marginTop:6}}><button className="btn danger" onClick={()=>deleteReview(rv.review._id)}>Delete</button></div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
           {searchResult && (
             <div className="card" style={{marginTop:8}}>
