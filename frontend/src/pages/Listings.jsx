@@ -23,7 +23,7 @@ export default function Listings(){
           <div key={l._id} className="card listing-card">
             <div style={{display:'flex',gap:12}}>
                 <div style={{width:140,height:100,flex:'0 0 140px'}}>
-                <img src={l.images && l.images[0] ? l.images[0] : 'https://via.placeholder.com/280x200'} alt="listing" onError={(e)=>{ e.target.onerror=null; e.target.src='https://via.placeholder.com/280x200' }} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:8}} />
+                <img src={resolveImageUrl(l.images && l.images[0]) || PLACEHOLDER_280x200} alt="listing" onError={(e)=>{ e.target.onerror=null; e.target.src=PLACEHOLDER_280x200 }} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:8}} />
               </div>
               <div style={{flex:1}}>
                 <h3 style={{marginTop:0}}>{l.title}</h3>
