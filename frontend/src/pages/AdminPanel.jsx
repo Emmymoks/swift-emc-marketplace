@@ -2,15 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { io as ioClient } from "socket.io-client";
 import axios from "axios";
-import {
-  Loader2,
-  RefreshCw,
-  Trash2,
-  Send,
-  Search,
-  ChevronDown,
-  ChevronRight,
-} from "lucide-react";
+import { Loader2, RefreshCw, Trash2, Send, Search } from "lucide-react";
 
 export default function AdminPanel() {
   const [pending, setPending] = useState([]);
@@ -29,7 +21,6 @@ export default function AdminPanel() {
   const [msgText, setMsgText] = useState("");
   const [socket, setSocket] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [openSection, setOpenSection] = useState(null);
 
   const nav = useNavigate();
   const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -70,7 +61,7 @@ export default function AdminPanel() {
     };
   }, []);
 
-  // Initial load
+  // Load initial data
   useEffect(() => {
     loadInbox();
     loadAllUsers();
@@ -78,12 +69,9 @@ export default function AdminPanel() {
     loadAllReviews();
   }, []);
 
-  // ---- API helpers ----
   async function loadInbox() {
     try {
-      const res = await axios.get(`${API}/api/admin/recent-messages`, {
-        headers: { "x-admin-secret": secret },
-      });
+      const res = await axios.get(`${API}/api/admin/recent-messages`, { headers: { "x-admin-secret": secret } });
       const rooms = res.data.rooms || [];
       setInbox(
         rooms.map((r) => ({
@@ -100,9 +88,7 @@ export default function AdminPanel() {
     setError("");
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/api/admin/listings`, {
-        headers: { "x-admin-secret": secret },
-      });
+      const res = await axios.get(`${API}/api/admin/listings`, { headers: { "x-admin-secret": secret } });
       setPending(res.data.pending || []);
     } catch {
       setError("Failed to load pending listings.");
@@ -246,141 +232,56 @@ export default function AdminPanel() {
     }
   }
 
-  // --- Accordion component ---
-  const Accordion = ({ title, count, children }) => (
-    <div className="border rounded-lg bg-white shadow-sm">
-      <button
-        onClick={() => setOpenSection(openSection === title ? null : title)}
-        className="w-full flex justify-between items-center px-4 py-3 text-left font-semibold hover:bg-gray-50"
-      >
-        <span>{title}</span>
-        <div className="flex items-center gap-2">
-          {count !== undefined && count > 0 && (
-            <span className="bg-gray-200 text-xs rounded-full px-2 py-0.5">{count}</span>
-          )}
-          {openSection === title ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-        </div>
-      </button>
-      {openSection === title && <div className="border-t p-4">{children}</div>}
-    </div>
-  );
-
-  // --- UI ---
   return (
-    <div className="p-6 space-y-6">
-      <h2 className="text-2xl font-bold">Admin Dashboard</h2>
-      {error && <div className="text-red-500">{error}</div>}
+    <div className="p-6">
+      <h2 className="text-2xl font-bold mb-4">Admin Dashboard</h2>
+
+      {error && <div className="text-red-500 mb-3">{error}</div>}
 
       <div className="grid md:grid-cols-3 gap-6">
-        {/* LEFT COLUMN */}
-        <div className="md:col-span-2 space-y-6">
-          {/* Pending Listings */}
-          <div className="bg-white rounded-xl shadow p-4">
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="text-lg font-semibold">Pending Listings</h3>
-              <div className="flex gap-2">
-                <button onClick={loadPending} className="btn flex items-center gap-1">
-                  {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <RefreshCw className="w-4 h-4" />} Refresh
-                </button>
-                <button onClick={loadAnalytics} className="btn flex items-center gap-1">
-                  Load Analytics
-                </button>
-              </div>
+        {/* LEFT COLUMN - Pending Listings */}
+        <div className="md:col-span-2">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-lg font-semibold">Pending Listings</h3>
+            <div className="flex gap-2">
+              <button onClick={loadPending} className="btn flex items-center gap-1">
+                {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <RefreshCw className="w-4 h-4" />}
+                Refresh
+              </button>
+              <button onClick={loadAnalytics} className="btn flex items-center gap-1">
+                Load Analytics
+              </button>
             </div>
-            {pending.length === 0 ? (
-              <p className="text-gray-500">No pending listings</p>
-            ) : (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {pending.map((l) => (
-                  <div key={l._id} className="p-4 border rounded-lg">
-                    <h4 className="font-semibold">{l.title}</h4>
-                    <p className="text-sm text-gray-600 line-clamp-3">{l.description}</p>
-                    <div className="flex gap-2 mt-3">
-                      <button
-                        onClick={() => approve(l._id)}
-                        className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
-                      >
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => reject(l._id)}
-                        className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                      >
-                        Reject
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
 
-          {/* Accordion Tabs */}
-          <Accordion title="All Users" count={allUsers.length}>
-            {allUsers.length === 0 ? (
-              <p className="text-gray-500">No users</p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {pending.length === 0 ? (
+              <div className="text-gray-500">No pending listings</div>
             ) : (
-              allUsers.map((u) => (
-                <div key={u._id} className="flex justify-between items-center border-b py-2 text-sm">
-                  <div>
-                    <div className="font-medium">{u.username}</div>
-                    <div className="text-gray-500">{u.email}</div>
+              pending.map((l) => (
+                <div key={l._id} className="p-4 bg-white rounded-xl shadow">
+                  <h4 className="font-semibold">{l.title}</h4>
+                  <p className="text-sm text-gray-600 line-clamp-3">{l.description}</p>
+                  <div className="flex gap-2 mt-3">
+                    <button onClick={() => approve(l._id)} className="btn bg-green-500 hover:bg-green-600 text-white">
+                      Approve
+                    </button>
+                    <button onClick={() => reject(l._id)} className="btn bg-red-500 hover:bg-red-600 text-white">
+                      Reject
+                    </button>
                   </div>
-                  <button onClick={() => deleteUser(u._id)}>
-                    <Trash2 size={16} className="text-red-500" />
-                  </button>
                 </div>
               ))
             )}
-          </Accordion>
-
-          <Accordion title="All Listings" count={allListings.length}>
-            {allListings.length === 0 ? (
-              <p className="text-gray-500">No listings</p>
-            ) : (
-              allListings.map((l) => (
-                <div key={l._id} className="flex justify-between items-center border-b py-2 text-sm">
-                  <div>
-                    <div className="font-medium">{l.title}</div>
-                    <div className="text-gray-500">by {l.owner?.username}</div>
-                  </div>
-                  <button onClick={() => deleteListing(l._id)}>
-                    <Trash2 size={16} className="text-red-500" />
-                  </button>
-                </div>
-              ))
-            )}
-          </Accordion>
-
-          <Accordion title="All Reviews" count={allReviews.length}>
-            {allReviews.length === 0 ? (
-              <p className="text-gray-500">No reviews</p>
-            ) : (
-              allReviews.map((rv) => (
-                <div key={rv.review._id} className="border-b py-2 text-sm">
-                  <div className="font-medium">
-                    {rv.review.rating}★ — {rv.listingTitle}
-                  </div>
-                  <div className="text-gray-600">{rv.review.comment}</div>
-                  <button
-                    onClick={() => deleteReview(rv.review._id)}
-                    className="mt-1 text-red-500 text-xs"
-                  >
-                    Delete
-                  </button>
-                </div>
-              ))
-            )}
-          </Accordion>
+          </div>
         </div>
 
-        {/* RIGHT COLUMN */}
+        {/* RIGHT COLUMN - Analytics & User Management */}
         <div className="space-y-6">
-          {/* Analytics */}
-          <div className="bg-white p-4 rounded-xl shadow">
+          <div className="p-4 bg-white rounded-xl shadow">
             <h4 className="font-semibold mb-2">Site Analytics</h4>
             {analytics ? (
-              <ul className="text-sm space-y-1 text-gray-700">
+              <ul className="text-sm text-gray-700 space-y-1">
                 <li>Total users: {analytics.totalUsers}</li>
                 <li>Total listings: {analytics.totalListings}</li>
                 <li>Pending listings: {analytics.pendingListings}</li>
@@ -388,26 +289,23 @@ export default function AdminPanel() {
                 <li>Uptime: {Math.round(analytics.uptime)}s</li>
               </ul>
             ) : (
-              <p className="text-gray-500 text-sm">No analytics loaded</p>
+              <div className="text-gray-500 text-sm">No analytics loaded</div>
             )}
           </div>
 
-          {/* Search User */}
-          <div className="bg-white p-4 rounded-xl shadow">
+          <div className="p-4 bg-white rounded-xl shadow">
             <div className="flex gap-2 mb-3">
               <input
                 placeholder="Search username"
                 value={searchUsername}
                 onChange={(e) => setSearchUsername(e.target.value)}
-                className="input flex-1 border rounded px-2 py-1"
+                className="input flex-1"
               />
-              <button
-                onClick={searchUser}
-                className="btn flex items-center gap-1 px-3 py-1 bg-blue-500 text-white rounded"
-              >
+              <button onClick={searchUser} className="btn flex items-center gap-1">
                 <Search className="w-4 h-4" /> Search
               </button>
             </div>
+
             {searchResult && (
               <div className="bg-gray-50 p-2 rounded text-sm">
                 <div>
@@ -430,99 +328,66 @@ export default function AdminPanel() {
             )}
           </div>
 
-          {/* Modern Chat */}
-          <div className="bg-white rounded-xl shadow flex flex-col h-[500px]">
-            <div className="flex items-center justify-between p-3 border-b">
-              <h4 className="font-semibold text-sm">
-                Messages / Complaints{" "}
-                {unreadCount > 0 && (
-                  <span className="bg-red-500 text-white text-xs px-2 py-0.5 ml-2 rounded-full">
-                    {unreadCount}
-                  </span>
-                )}
-              </h4>
+          {/* MESSAGES */}
+          <div className="p-4 bg-white rounded-xl shadow">
+            <h4 className="font-semibold mb-2">
+              Messages / Complaints{" "}
+              {unreadCount > 0 && (
+                <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5 ml-2">{unreadCount}</span>
+              )}
+            </h4>
+            <div className="max-h-40 overflow-auto space-y-2">
+              {inbox.length === 0 ? (
+                <div className="text-gray-500 text-sm">No messages</div>
+              ) : (
+                inbox.map((i) => (
+                  <div
+                    key={i.roomId}
+                    onClick={() => {
+                      setMsgRoom(i.roomId);
+                      loadMessages();
+                      setUnreadCount(0);
+                    }}
+                    className="p-2 border rounded hover:bg-gray-100 cursor-pointer flex justify-between"
+                  >
+                    <div>
+                      <div className="font-semibold text-sm">{i.from?.username || "User"}</div>
+                      <div className="text-xs text-gray-500 truncate">{i.text}</div>
+                    </div>
+                    {i.unread > 0 && (
+                      <div className="bg-red-500 text-white rounded-full px-2 text-xs">{i.unread}</div>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
 
-            <div className="flex flex-1 overflow-hidden">
-              {/* Inbox */}
-              <div className="w-1/3 border-r overflow-auto">
-                {inbox.length === 0 ? (
-                  <p className="p-3 text-sm text-gray-500">No messages</p>
-                ) : (
-                  inbox.map((i) => (
-                    <div
-                      key={i.roomId}
-                      onClick={() => {
-                        setMsgRoom(i.roomId);
-                        loadMessages();
-                        setUnreadCount(0);
-                      }}
-                      className={`p-3 cursor-pointer border-b hover:bg-gray-100 ${
-                        msgRoom === i.roomId ? "bg-gray-100" : ""
-                      }`}
-                    >
-                      <div className="font-semibold text-sm">
-                        {i.from?.username || "User"}
-                      </div>
-                      <div className="text-xs text-gray-500 truncate">
-                        {i.text}
-                      </div>
-                      {i.unread > 0 && (
-                        <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-                          {i.unread}
-                        </span>
-                      )}
+            <div className="max-h-56 overflow-auto mt-3 space-y-2">
+              {messages.length === 0 ? (
+                <div className="text-gray-500 text-sm">No messages loaded</div>
+              ) : (
+                messages.map((m) => (
+                  <div key={m._id} className="border rounded p-2 text-sm">
+                    <div>
+                      <strong>{m.from?.username || "Admin"}</strong> →{" "}
+                      <em>{m.to?.username || "User"}</em>
                     </div>
-                  ))
-                )}
-              </div>
+                    <div className="text-gray-600">{m.text}</div>
+                  </div>
+                ))
+              )}
+            </div>
 
-              {/* Chat Window */}
-              <div className="flex flex-col flex-1">
-                <div className="flex-1 overflow-auto p-3 space-y-2">
-                  {messages.length === 0 ? (
-                    <p className="text-gray-500 text-sm">Select a chat to view messages</p>
-                  ) : (
-                    messages.map((m) => (
-                      <div
-                        key={m._id}
-                        className={`flex ${
-                          m.from?.role === "admin" ? "justify-end" : "justify-start"
-                        }`}
-                      >
-                        <div
-                          className={`p-2 rounded-lg max-w-[75%] ${
-                            m.from?.role === "admin"
-                              ? "bg-blue-500 text-white"
-                              : "bg-gray-100 text-gray-800"
-                          }`}
-                        >
-                          <div className="text-xs opacity-80">
-                            {m.from?.username || "Admin"}
-                          </div>
-                          <div>{m.text}</div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                {/* Input */}
-                <div className="p-3 border-t flex gap-2">
-                  <input
-                    placeholder="Type a message..."
-                    value={msgText}
-                    onChange={(e) => setMsgText(e.target.value)}
-                    className="flex-1 border rounded px-2 py-1"
-                  />
-                  <button
-                    onClick={replyMessage}
-                    className="bg-blue-500 text-white px-4 py-1.5 rounded hover:bg-blue-600 flex items-center gap-1"
-                  >
-                    <Send size={16} /> Send
-                  </button>
-                </div>
-              </div>
+            <div className="flex gap-2 mt-3">
+              <input
+                placeholder="Reply..."
+                value={msgText}
+                onChange={(e) => setMsgText(e.target.value)}
+                className="input flex-1"
+              />
+              <button onClick={replyMessage} className="btn flex items-center gap-1">
+                <Send className="w-4 h-4" /> Send
+              </button>
             </div>
           </div>
         </div>
