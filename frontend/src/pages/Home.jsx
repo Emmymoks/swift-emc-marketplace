@@ -90,15 +90,27 @@ export default function Home(){
         <div className="hero-right">
           <div className="featured-grid">
             {loading ? <div className="muted">Loading featured...</div> : (
-              visibleListings.slice(0,6).map(l=> (
-                <Link key={l._id} to={`/listing/${l._id}`} className="card featured">
-                  <img src={resolveImageUrl((l.images && l.images[0])||'')} alt={l.title} onError={(e)=>{ e.target.src='https://via.placeholder.com/320x240' }} />
-                  <div style={{padding:8}}>
-                    <div style={{fontWeight:700}}>{l.title}</div>
-                    <div className="muted">{l.price} {l.currency}</div>
+              visibleListings.slice(0,6).map(l=> {
+                const isDemo = String(l._id||'').startsWith('demo')
+                const Img = (<img src={resolveImageUrl((l.images && l.images[0])||'')||'https://via.placeholder.com/320x240'} alt={l.title} onError={(e)=>{ e.target.onerror=null; e.target.src='https://via.placeholder.com/320x240' }} />)
+                return isDemo ? (
+                  <div key={l._id} className="card featured" style={{cursor:'default'}}>
+                    {Img}
+                    <div style={{padding:8}}>
+                      <div style={{fontWeight:700}}>{l.title}</div>
+                      <div className="muted">{l.price} {l.currency}</div>
+                    </div>
                   </div>
-                </Link>
-              ))
+                ) : (
+                  <Link key={l._id} to={`/listing/${l._id}`} className="card featured">
+                    {Img}
+                    <div style={{padding:8}}>
+                      <div style={{fontWeight:700}}>{l.title}</div>
+                      <div className="muted">{l.price} {l.currency}</div>
+                    </div>
+                  </Link>
+                )
+              })
             )}
           </div>
         </div>
