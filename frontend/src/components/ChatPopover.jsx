@@ -93,6 +93,33 @@ export default function ChatPopover({ roomId, listingId, sellerId, onClose }){
     }catch(e){ alert('Send failed') }
   }
 
+  async function deleteMessage(id){
+    if(!id) return;
+    const token = localStorage.getItem('token')
+    try{
+      await axios.delete(`${base}/api/messages/${encodeURIComponent(id)}`, { headers: { Authorization: token ? ('Bearer '+token) : '' } })
+      setMsgs(prev=> prev.filter(x=> String(x._id) !== String(id)))
+    }catch(e){ alert('Delete failed') }
+  }
+
+  async function deleteConversation(){
+    // compute room
+    let r = roomId || null
+    if(!r){
+      if(listingId) r = `listing_${listingId}`
+      else if(sellerId && myId){
+        try{ const a = String(myId), b = String(sellerId); r = `user:${a < b ? a + '_' + b : b + '_' + a}` }catch(e){ r = `user:${sellerId}` }
+      }else if(sellerId) r = `user:${sellerId}`
+    }
+    const token = localStorage.getItem('token')
+    if(!r) return
+    try{
+      await axios.delete(`${base}/api/messages/conversations/${encodeURIComponent(r)}`, { headers: { Authorization: token ? ('Bearer '+token) : '' } })
+      setMsgs([])
+      if(onClose) onClose()
+    }catch(e){ alert('Failed to delete conversation') }
+  }
+
   function senderInfo(m){
     if(!m) return { name: 'Unknown', mine: false }
     const mine = !!(m.from && (String(m.from._id || m.from) === String(myId)))
