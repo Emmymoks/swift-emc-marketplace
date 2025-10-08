@@ -34,7 +34,7 @@ function SearchableCountrySelect({ value, onChange }){
             {list.map(c=> (
               <button key={c.code} type="button" className="country-option" onClick={()=>{ onChange(c.code); setOpen(false); setFilter('') }}>
                 <img src={flagUrl(c.code)} alt="flag" className="country-flag" onError={(e)=>{ e.target.onerror=null; e.target.src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="34" height="18"><rect width="100%" height="100%" fill="%23eee"/></svg>' }} />
-                <div style={{flex:1,textAlign:'left'}}>{c.name} <span className="muted">{c.dial}</span></div>
+                <div style={{flex:1,textAlign:'left'}}>{c.name}</div>
               </button>
             ))}
           </div>
@@ -73,7 +73,7 @@ const SECURITY_QUESTIONS = [
 ]
 
 export default function Signup(){
-  const [form, setForm] = useState({ country: 'US', dial: '+1' });
+  const [form, setForm] = useState({ country: 'US', dial: '+1', firstName:'', middleInitial:'', lastName:'' });
   const [loading, setLoading] = useState(false);
   const nav = useNavigate();
 
@@ -103,19 +103,24 @@ export default function Signup(){
   }
 
   return (
-    <form onSubmit={submit} className="page" style={{maxWidth:640}}>
+    <form onSubmit={submit} className="page" style={{maxWidth:680}}>
       <h3>Create account</h3>
       <div className="form-row">
-        <div className="form-col"><input placeholder="Full name" value={form.fullName||''} onChange={e=>setField('fullName', e.target.value)} required/></div>
+        <div className="form-col"><input placeholder="First name" value={form.firstName||''} onChange={e=>setField('firstName', e.target.value)} required/></div>
+        <div style={{width:92}}><input placeholder="M." value={form.middleInitial||''} onChange={e=>setField('middleInitial', e.target.value)} maxLength={3} /></div>
+        <div className="form-col"><input placeholder="Last name" value={form.lastName||''} onChange={e=>setField('lastName', e.target.value)} required/></div>
+      </div>
+      <div className="form-row">
         <div className="form-col">
           <SearchableCountrySelect value={form.country} onChange={(code)=>{ const c = countries.find(x=>x.code===code); setField('country', code); if(c) setField('dial', c.dial); }} />
         </div>
       </div>
 
-  <input placeholder="Username" value={form.username||''} onChange={e=>setField('username', e.target.value)} required/>
+      <input placeholder="Username" value={form.username||''} onChange={e=>setField('username', e.target.value)} required/>
 
-      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-  <CountryDialSelect dial={form.dial} country={form.country} onChange={(v)=>{ if(v && v.code){ setField('country', v.code); } if(v && v.dial){ setField('dial', v.dial); } }} />
+      <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+        <CountryDialSelect dial={form.dial} country={form.country} onChange={(v)=>{ if(v && v.code){ setField('country', v.code); } if(v && v.dial){ setField('dial', v.dial); } }} />
+        {/* Hide the raw country code next to the country picker as requested; only the select shows country names */}
         <input placeholder="Phone number" value={form.phoneNumber||''} onChange={e=>setField('phoneNumber', e.target.value)} style={{flex:1,minWidth:160}} />
       </div>
 
