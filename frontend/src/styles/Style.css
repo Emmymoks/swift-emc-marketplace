@@ -178,3 +178,44 @@ select{font-size:15px}
 /* helper to suppress underlines */
 .no-underline{ text-decoration: none !important; }
 
+/* === NEW DIAL CODE + PHONE INPUT STYLES === */
+.dial-select {
+  width: 110px !important;
+  min-width: 100px;
+  border-radius: 8px;
+  padding: 8px;
+  background: #fff;
+  border: 1px solid rgba(15,23,42,0.06);
+}
+.dial-select:focus {
+  border-color: rgba(124,92,255,0.18);
+  box-shadow: 0 4px 18px rgba(124,92,255,0.08);
+  outline: none;
+}
+.dial-flag {
+  width: 22px !important;
+  height: 14px !important;
+  border-radius: 2px;
+  object-fit: cover;
+}
+.phone-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.phone-row input {
+  flex: 1;
+  min-width: 160px;
+}
+.country-picker-toggle select,
+.country-picker select,
+select.dial-select {
+  text-align-last: center;
+}
+
+/* Responsive tweak for small screens */
+@media (max-width:500px){
+  .phone-row{flex-direction:column;align-items:stretch}
+  .dial-select{width:100% !important}
+}
