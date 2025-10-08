@@ -74,9 +74,14 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-    const isProduction = process.env.NODE_ENV === 'production' && cloudinary;
+    const validCloudinary =
+      process.env.NODE_ENV === 'production' &&
+      cloudinary &&
+      process.env.CLOUDINARY_CLOUD_NAME &&
+      process.env.CLOUDINARY_API_KEY &&
+      process.env.CLOUDINARY_API_SECRET;
 
-    if (isProduction) {
+    if (validCloudinary) {
       // Upload directly to Cloudinary
       const uploadStream = cloudinary.uploader.upload_stream(
         {
@@ -110,7 +115,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 });
 
 // Serve static uploads in dev
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(uploadDir));
 
 // ==============================
 // ❤️ HEALTHCHECK
@@ -123,13 +128,17 @@ app.get('/', (req, res) => {
 // 🚀 DATABASE + SERVER START
 // ==============================
 const PORT = process.env.PORT || 5000;
-mongoose
-  .connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/swift_emc')
-  .then(() => {
+const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/swift_emc';
+
+(async () => {
+  try {
+    await mongoose.connect(MONGO_URI, {
+      serverSelectionTimeoutMS: 10000, // 10s timeout
+    });
     console.log('✅ MongoDB connected');
+  } catch (err) {
+    console.error('⚠️ MongoDB connection error:', err.message);
+  } finally {
     server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-  })
-  .catch((err) => {
-    console.error('⚠️ MongoDB connection error:', err);
-    server.listen(PORT, () => console.log(`🚀 Server running without DB on ${PORT}`));
-  });
+  }
+});
