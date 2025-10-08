@@ -40,6 +40,11 @@ export default function Chats(){
                   </div>
                   <div>
                     <button className="btn" onClick={()=> setActiveRoom(c.roomId)}>Open</button>
+                    <button className="btn ghost" style={{marginLeft:8}} onClick={async()=>{
+                      const token = localStorage.getItem('token')
+                      if(!confirm('Delete this conversation for you? This will remove all messages locally for this conversation.')) return
+                      try{ await axios.delete(`${base}/api/messages/conversations/${encodeURIComponent(c.roomId)}`, { headers: { Authorization: token ? ('Bearer '+token) : '' } }); setConvs(prev=> prev.filter(x=> x.roomId !== c.roomId)); if(activeRoom===c.roomId) setActiveRoom(null) }catch(e){ alert('Delete failed') }
+                    }}>Delete</button>
                   </div>
                 </div>
               ))
