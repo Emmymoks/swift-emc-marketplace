@@ -1,397 +1,298 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { io as ioClient } from "socket.io-client";
-import axios from "axios";
-import { Loader2, RefreshCw, Trash2, Send, Search } from "lucide-react";
+import React, { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { io as ioClient } from 'socket.io-client'
+import axios from 'axios'
 
-export default function AdminPanel() {
+export default function AdminPanel(){
   const [pending, setPending] = useState([]);
-  const [secret, setSecret] = useState(() => sessionStorage.getItem("admin_secret") || "");
+  const [secret, setSecret] = useState(()=> sessionStorage.getItem('admin_secret') || '');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [analytics, setAnalytics] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
   const [allListings, setAllListings] = useState([]);
   const [allReviews, setAllReviews] = useState([]);
-  const [searchUsername, setSearchUsername] = useState("");
+  const [searchUsername, setSearchUsername] = useState('');
   const [searchResult, setSearchResult] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inbox, setInbox] = useState([]);
-  const [msgRoom, setMsgRoom] = useState("");
-  const [msgText, setMsgText] = useState("");
+  const [msgRoom, setMsgRoom] = useState('');
+  const [msgText, setMsgText] = useState('');
   const [socket, setSocket] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const nav = useNavigate();
-  const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  const nav = useNavigate()
 
-  // 🔌 Setup socket
-  useEffect(() => {
-    const s = sessionStorage.getItem("admin_secret") || "";
-    if (!s) nav("/admin-login");
-
-    try {
-      const sc = ioClient(API);
+  useEffect(()=>{
+    // if admin secret not present, redirect to admin login
+    const s = sessionStorage.getItem('admin_secret') || '';
+    if (!s) nav('/admin-login');
+    // setup socket
+    try{
+  const sc = ioClient(import.meta.env.VITE_API_URL || undefined);
       setSocket(sc);
-
-      sc.on("admin:newMessage", (m) => {
-        if (!m) return;
-        setInbox((curr) => {
-          const other = curr.filter((i) => i.roomId !== m.roomId);
-          const key = `admin:unread:${m.roomId}`;
-          const cur = parseInt(localStorage.getItem(key) || "0", 10) || 0;
-          localStorage.setItem(key, String(cur + 1));
-          return [{ roomId: m.roomId, text: m.text, from: m.from, unread: cur + 1 }, ...other].slice(0, 50);
-        });
-        setUnreadCount((c) => c + 1);
-        setMessages((curr) => (m.roomId === msgRoom ? [...curr, m] : curr));
+      sc.on('admin:newMessage', (m)=>{
+        if(!m) return;
+        // add to inbox (dedupe by roomId, keep latest message preview)
+          setInbox(curr => {
+            const other = curr.filter(i=>i.roomId!==m.roomId);
+            // update unread count in localStorage
+            const key = `admin:unread:${m.roomId}`
+            const cur = parseInt(localStorage.getItem(key) || '0', 10) || 0
+            localStorage.setItem(key, String(cur+1))
+            return [{ roomId: m.roomId, text: m.text, from: m.from, unread: cur+1 }, ...other].slice(0,50);
+          });
+        setUnreadCount(c=>c+1);
+        // if admin currently viewing this room, append to messages list
+        setMessages(curr => (m.roomId === msgRoom ? [...curr, m] : curr));
       });
-
-      sc.on("admin:user:signup", (payload) => {
-        setAnalytics((a) => ({ ...(a || {}), totalUsers: payload.totalUsers }));
+      sc.on('admin:user:signup', (payload)=>{
+        setAnalytics(a=> ({ ...(a||{}), totalUsers: payload.totalUsers }))
       });
-    } catch (e) {
-      console.error("Socket init failed", e);
-    }
+    }catch(e){ }
+    return ()=>{ try{ if(sc) sc.disconnect(); }catch(e){} }
+  },[])
 
-    return () => {
-      try {
-        if (socket) socket.disconnect();
-      } catch (e) {}
-    };
-  }, []);
+  // load inbox from server (existing conversations)
+  async function loadInbox(){
+    try{
+      const res = await axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/recent-messages', { headers: { 'x-admin-secret': secret } });
+      const rooms = res.data.rooms || [];
+      setInbox(rooms.map(r=> ({ roomId: r.roomId, text: r.lastMessage.text, from: r.lastMessage.from, unread: parseInt(localStorage.getItem('admin:unread:'+r.roomId)||'0',10)||0 })));
+    }catch(e){ /* ignore */ }
+  }
 
-  // Load initial data
-  useEffect(() => {
-    loadInbox();
+  useEffect(()=>{ loadInbox() }, [])
+
+  useEffect(()=>{
+    // load admin lists
     loadAllUsers();
     loadAllListings();
     loadAllReviews();
-  }, []);
+  }, [])
 
-  async function loadInbox() {
-    try {
-      const res = await axios.get(`${API}/api/admin/recent-messages`, { headers: { "x-admin-secret": secret } });
-      const rooms = res.data.rooms || [];
-      setInbox(
-        rooms.map((r) => ({
-          roomId: r.roomId,
-          text: r.lastMessage.text,
-          from: r.lastMessage.from,
-          unread: parseInt(localStorage.getItem(`admin:unread:${r.roomId}`) || "0", 10) || 0,
-        }))
-      );
-    } catch {}
-  }
-
-  async function loadPending() {
-    setError("");
+  async function loadPending(){
+    setError('');
     setLoading(true);
-    try {
-      const res = await axios.get(`${API}/api/admin/listings`, { headers: { "x-admin-secret": secret } });
+    try{
+      const secretToUse = secret;
+      const res = await axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/listings', { headers: { 'x-admin-secret': secretToUse } });
       setPending(res.data.pending || []);
-    } catch {
-      setError("Failed to load pending listings.");
+    }catch(e){
+      setError('Failed to load pending listings.');
       setPending([]);
-    } finally {
-      setLoading(false);
-    }
+    }finally{ setLoading(false); }
   }
 
-  async function approve(id) {
-    try {
-      await axios.post(`${API}/api/admin/listings/${id}/approve`, {}, { headers: { "x-admin-secret": secret } });
-      setPending((p) => p.filter((x) => x._id !== id));
-    } catch {
-      alert("Approve failed");
-    }
+  async function approve(id){
+    try{
+      const secretToUse = secret || sessionStorage.getItem('admin_secret') || '';
+      await axios.post((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/listings/'+id+'/approve', {}, { headers: { 'x-admin-secret': secretToUse } });
+      setPending(p=>p.filter(x=>x._id!==id));
+    }catch(e){ alert('Approve failed'); }
+  }
+  async function reject(id){
+    try{
+      const secretToUse = secret || sessionStorage.getItem('admin_secret') || '';
+      await axios.post((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/listings/'+id+'/reject', {}, { headers: { 'x-admin-secret': secretToUse } });
+      setPending(p=>p.filter(x=>x._id!==id));
+    }catch(e){ alert('Reject failed'); }
   }
 
-  async function reject(id) {
-    try {
-      await axios.post(`${API}/api/admin/listings/${id}/reject`, {}, { headers: { "x-admin-secret": secret } });
-      setPending((p) => p.filter((x) => x._id !== id));
-    } catch {
-      alert("Reject failed");
-    }
-  }
-
-  async function loadAnalytics() {
+  async function loadAnalytics(){
     setLoading(true);
-    try {
-      const res = await axios.get(`${API}/api/admin/analytics`, { headers: { "x-admin-secret": secret } });
+    try{
+      const res = await axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/analytics', { headers: { 'x-admin-secret': secret } });
       setAnalytics(res.data);
-    } catch {
-      setError("Failed to load analytics");
-    } finally {
-      setLoading(false);
-    }
+    }catch(err){ setError('Failed to load analytics'); }
+    setLoading(false);
   }
 
-  async function loadAllUsers() {
-    try {
-      const res = await axios.get(`${API}/api/admin/users/all`, { headers: { "x-admin-secret": secret } });
-      setAllUsers(res.data.users || []);
-    } catch {}
+  async function loadAllUsers(){
+    try{
+      const res = await axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/users/all', { headers: { 'x-admin-secret': secret } });
+      setAllUsers(res.data.users || [])
+    }catch(e){ }
   }
 
-  async function loadAllListings() {
-    try {
-      const res = await axios.get(`${API}/api/admin/listings/all`, { headers: { "x-admin-secret": secret } });
-      setAllListings(res.data.listings || []);
-    } catch {}
+  async function loadAllListings(){
+    try{
+      const res = await axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/listings/all', { headers: { 'x-admin-secret': secret } });
+      setAllListings(res.data.listings || [])
+    }catch(e){}
   }
 
-  async function loadAllReviews() {
-    try {
-      const res = await axios.get(`${API}/api/admin/reviews`, { headers: { "x-admin-secret": secret } });
-      setAllReviews(res.data.reviews || []);
-    } catch {}
+  async function loadAllReviews(){
+    try{
+      const res = await axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/reviews', { headers: { 'x-admin-secret': secret } });
+      setAllReviews(res.data.reviews || [])
+    }catch(e){}
   }
 
-  async function deleteUser(id) {
-    if (!confirm("Delete user and their data?")) return;
-    try {
-      await axios.delete(`${API}/api/admin/users/${id}`, { headers: { "x-admin-secret": secret } });
-      setAllUsers((u) => u.filter((x) => x._id !== id));
-    } catch {
-      alert("Delete failed");
-    }
-  }
+  async function deleteUser(id){ if(!confirm('Delete user and their data?')) return; try{ await axios.delete((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/users/'+id, { headers: { 'x-admin-secret': secret } }); setAllUsers(u=> u.filter(x=> x._id !== id)); }catch(e){ alert('Delete failed') } }
+  async function deleteListing(id){ if(!confirm('Delete listing?')) return; try{ await axios.delete((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/listings/'+id, { headers: { 'x-admin-secret': secret } }); setAllListings(l=> l.filter(x=> x._id !== id)); }catch(e){ alert('Delete failed') } }
+  async function deleteReview(id){ if(!confirm('Delete review?')) return; try{ await axios.delete((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/reviews/'+id, { headers: { 'x-admin-secret': secret } }); setAllReviews(r=> r.filter(x=> String(x.review._id) !== String(id))); }catch(e){ alert('Delete failed') } }
 
-  async function deleteListing(id) {
-    if (!confirm("Delete listing?")) return;
-    try {
-      await axios.delete(`${API}/api/admin/listings/${id}`, { headers: { "x-admin-secret": secret } });
-      setAllListings((l) => l.filter((x) => x._id !== id));
-    } catch {
-      alert("Delete failed");
-    }
-  }
-
-  async function deleteReview(id) {
-    if (!confirm("Delete review?")) return;
-    try {
-      await axios.delete(`${API}/api/admin/reviews/${id}`, { headers: { "x-admin-secret": secret } });
-      setAllReviews((r) => r.filter((x) => String(x.review._id) !== String(id)));
-    } catch {
-      alert("Delete failed");
-    }
-  }
-
-  async function searchUser() {
+  async function searchUser(){
     if (!searchUsername) return;
-    setLoading(true);
-    setSearchResult(null);
-    try {
-      const res = await axios.get(`${API}/api/admin/users`, {
-        params: { username: searchUsername },
-        headers: { "x-admin-secret": secret },
-      });
+    setLoading(true); setSearchResult(null);
+    try{
+      const res = await axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/users', { params: { username: searchUsername }, headers: { 'x-admin-secret': secret } });
       setSearchResult(res.data);
-    } catch {
-      setError("User not found or search failed");
-    } finally {
-      setLoading(false);
-    }
+    }catch(err){ setError('User not found or search failed'); }
+    setLoading(false);
   }
 
-  async function loadMessages() {
-    if (!msgRoom) return setError("Enter roomId to load messages");
+  async function loadMessages(){
+    if (!msgRoom) return setError('Enter roomId to load messages');
     setLoading(true);
-    try {
-      const res = await axios.get(`${API}/api/admin/messages`, {
-        params: { roomId: msgRoom },
-        headers: { "x-admin-secret": secret },
-      });
+    try{
+      const res = await axios.get((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/messages', { params: { roomId: msgRoom }, headers: { 'x-admin-secret': secret } });
       setMessages(res.data.msgs || []);
-      localStorage.setItem(`admin:unread:${msgRoom}`, "0");
-      setInbox((curr) => curr.map((i) => (i.roomId === msgRoom ? { ...i, unread: 0 } : i)));
-      setUnreadCount(0);
-    } catch {
-      setError("Failed to load messages");
-    } finally {
-      setLoading(false);
-    }
+      // clear unread for this room
+      try{ localStorage.setItem('admin:unread:'+msgRoom, '0'); setInbox(curr=>curr.map(i=> i.roomId===msgRoom? {...i, unread:0}: i)); setUnreadCount(0); }catch(e){}
+    }catch(err){ setError('Failed to load messages'); }
+    setLoading(false);
   }
 
-  async function replyMessage() {
+  async function replyMessage(){
     if (!msgRoom || !msgText) return;
-    try {
-      const target = messages.slice().reverse().find((m) => m.from && m.from._id) || messages[0];
-      const toId = target ? target.from?._id || target.to?._id : null;
-      const res = await axios.post(
-        `${API}/api/admin/messages/reply`,
-        { roomId: msgRoom, toId, text: msgText },
-        { headers: { "x-admin-secret": secret } }
-      );
-      setMessages((m) => [...m, res.data.msg]);
-      setMsgText("");
-    } catch {
-      alert("Send failed");
-    }
+    try{
+      // determine reply target: pick last non-null 'from' user in messages for the room
+      const target = messages.slice().reverse().find(m=>m.from && m.from._id) || messages[0]
+      const toId = target ? (target.from?._id || target.to?._id) : null
+      const res = await axios.post((import.meta.env.VITE_API_URL||'http://localhost:5000') + '/api/admin/messages/reply', { roomId: msgRoom, toId, text: msgText }, { headers: { 'x-admin-secret': secret } });
+      // append locally
+      setMessages(m=>[...m, res.data.msg]);
+      setMsgText('');
+    }catch(err){ alert('Send failed'); }
   }
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Admin Dashboard</h2>
-
-      {error && <div className="text-red-500 mb-3">{error}</div>}
-
-      <div className="grid md:grid-cols-3 gap-6">
-        {/* LEFT COLUMN - Pending Listings */}
-        <div className="md:col-span-2">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold">Pending Listings</h3>
-            <div className="flex gap-2">
-              <button onClick={loadPending} className="btn flex items-center gap-1">
-                {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <RefreshCw className="w-4 h-4" />}
-                Refresh
-              </button>
-              <button onClick={loadAnalytics} className="btn flex items-center gap-1">
-                Load Analytics
-              </button>
-            </div>
+    <div className="page">
+      <h2>Admin Panel</h2>
+      <div style={{display:'flex',gap:16,alignItems:'center'}}>
+        <div style={{flex:1}}>
+          <h4>Pending listings</h4>
+          <div style={{marginBottom:8}}>
+            <button className="btn" onClick={loadPending} disabled={loading}>{loading? 'Loading...':'Refresh pending'}</button>
+            <button className="btn ghost" onClick={()=>setPending([])} style={{marginLeft:8}}>Clear list</button>
+            <button className="btn" onClick={loadAnalytics} style={{marginLeft:8}}>Load analytics</button>
           </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {pending.length === 0 ? (
-              <div className="text-gray-500">No pending listings</div>
-            ) : (
-              pending.map((l) => (
-                <div key={l._id} className="p-4 bg-white rounded-xl shadow">
-                  <h4 className="font-semibold">{l.title}</h4>
-                  <p className="text-sm text-gray-600 line-clamp-3">{l.description}</p>
-                  <div className="flex gap-2 mt-3">
-                    <button onClick={() => approve(l._id)} className="btn bg-green-500 hover:bg-green-600 text-white">
-                      Approve
-                    </button>
-                    <button onClick={() => reject(l._id)} className="btn bg-red-500 hover:bg-red-600 text-white">
-                      Reject
-                    </button>
-                  </div>
+          {error && <div style={{color:'var(--danger)',marginTop:8}}>{error}</div>}
+          <div className="grid listings-grid">
+            {pending.length===0 && <div className="muted">No pending listings</div>}
+            {pending.map(l=> (
+              <div key={l._id} className="card">
+                <h4>{l.title}</h4>
+                <p className="muted">{l.description}</p>
+                <div className="admin-controls">
+                  <button className="btn" onClick={()=>approve(l._id)}>Approve</button>
+                  <button className="btn danger" onClick={()=>reject(l._id)}>Reject</button>
                 </div>
-              ))
-            )}
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* RIGHT COLUMN - Analytics & User Management */}
-        <div className="space-y-6">
-          <div className="p-4 bg-white rounded-xl shadow">
-            <h4 className="font-semibold mb-2">Site Analytics</h4>
-            {analytics ? (
-              <ul className="text-sm text-gray-700 space-y-1">
-                <li>Total users: {analytics.totalUsers}</li>
-                <li>Total listings: {analytics.totalListings}</li>
-                <li>Pending listings: {analytics.pendingListings}</li>
-                <li>Total messages: {analytics.totalMessages}</li>
-                <li>Uptime: {Math.round(analytics.uptime)}s</li>
-              </ul>
-            ) : (
-              <div className="text-gray-500 text-sm">No analytics loaded</div>
-            )}
-          </div>
-
-          <div className="p-4 bg-white rounded-xl shadow">
-            <div className="flex gap-2 mb-3">
-              <input
-                placeholder="Search username"
-                value={searchUsername}
-                onChange={(e) => setSearchUsername(e.target.value)}
-                className="input flex-1"
-              />
-              <button onClick={searchUser} className="btn flex items-center gap-1">
-                <Search className="w-4 h-4" /> Search
-              </button>
+        <div style={{width:360}}>
+          <h4>Site analytics</h4>
+          {analytics ? (
+            <div className="card">
+              <div>Total users: {analytics.totalUsers}</div>
+              <div>Total listings: {analytics.totalListings}</div>
+              <div>Pending listings: {analytics.pendingListings}</div>
+              <div>Total messages: {analytics.totalMessages}</div>
+              <div>Uptime (s): {Math.round(analytics.uptime)}</div>
             </div>
+          ) : <div className="muted">No analytics loaded</div>}
 
-            {searchResult && (
-              <div className="bg-gray-50 p-2 rounded text-sm">
-                <div>
-                  <strong>{searchResult.user.username}</strong> ({searchResult.user.email})
+          <h4 style={{marginTop:12}}>Search user</h4>
+          <div style={{display:'flex',gap:8}}>
+            <input placeholder="username" value={searchUsername} onChange={e=>setSearchUsername(e.target.value)} />
+            <button className="btn" onClick={searchUser}>Search</button>
+          </div>
+          <div style={{marginTop:12}}>
+            <h4>All Users</h4>
+            <div className="card" style={{maxHeight:160,overflow:'auto'}}>
+              {allUsers.length===0 && <div className="muted">No users loaded</div>}
+              {allUsers.map(u=> (
+                <div key={u._id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:8}}>
+                  <div>{u.username} <div className="muted" style={{fontSize:12}}>{u.email}</div></div>
+                  <div><button className="btn danger" onClick={()=>deleteUser(u._id)}>Delete</button></div>
                 </div>
-                <div>{searchResult.user.fullName}</div>
-                <div className="mt-2">
-                  <strong>Listings:</strong>
-                  {searchResult.listings.length === 0 ? (
-                    <div className="text-gray-500">No listings</div>
-                  ) : (
-                    searchResult.listings.map((l) => (
-                      <div key={l._id}>
-                        {l.title} - {l.approved ? "approved" : "pending"}
-                      </div>
-                    ))
-                  )}
-                </div>
+              ))}
+            </div>
+            <div style={{marginTop:8}}>
+              <h4>All Listings</h4>
+              <div className="card" style={{maxHeight:160,overflow:'auto'}}>
+                {allListings.length===0 && <div className="muted">No listings loaded</div>}
+                {allListings.map(l=> (
+                  <div key={l._id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:8}}>
+                    <div><strong>{l.title}</strong><div className="muted">by {l.owner?.username}</div></div>
+                    <div><button className="btn danger" onClick={()=>deleteListing(l._id)}>Delete</button></div>
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
+
+            <div style={{marginTop:8}}>
+              <h4>All Reviews</h4>
+              <div className="card" style={{maxHeight:160,overflow:'auto'}}>
+                {allReviews.length===0 && <div className="muted">No reviews</div>}
+                {allReviews.map(rv=> (
+                  <div key={rv.review._id} style={{padding:8,borderBottom:'1px solid #eee'}}>
+                    <div style={{fontWeight:700}}>{rv.review.rating} ★ — {rv.listingTitle}</div>
+                    <div className="muted">{rv.review.comment}</div>
+                    <div style={{marginTop:6}}><button className="btn danger" onClick={()=>deleteReview(rv.review._id)}>Delete</button></div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
+          {searchResult && (
+            <div className="card" style={{marginTop:8}}>
+              <div><strong>{searchResult.user.username}</strong> ({searchResult.user.email})</div>
+              <div>{searchResult.user.fullName}</div>
+              <div style={{marginTop:8}}><strong>Listings</strong></div>
+              {searchResult.listings.length===0 && <div className="muted">No listings</div>}
+              {searchResult.listings.map(l=> <div key={l._id} className="muted">{l.title} - {l.approved? 'approved':'pending'}</div>)}
+            </div>
+          )}
 
-          {/* MESSAGES */}
-          <div className="p-4 bg-white rounded-xl shadow">
-            <h4 className="font-semibold mb-2">
-              Messages / Complaints{" "}
-              {unreadCount > 0 && (
-                <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5 ml-2">{unreadCount}</span>
-              )}
-            </h4>
-            <div className="max-h-40 overflow-auto space-y-2">
-              {inbox.length === 0 ? (
-                <div className="text-gray-500 text-sm">No messages</div>
-              ) : (
-                inbox.map((i) => (
-                  <div
-                    key={i.roomId}
-                    onClick={() => {
-                      setMsgRoom(i.roomId);
-                      loadMessages();
-                      setUnreadCount(0);
-                    }}
-                    className="p-2 border rounded hover:bg-gray-100 cursor-pointer flex justify-between"
-                  >
+          <h4 style={{marginTop:12}}>Messages / complaints {unreadCount>0 && <span style={{background:'var(--accent)',color:'#fff',borderRadius:12,padding:'2px 8px',fontSize:12,marginLeft:8}}>{unreadCount}</span>}</h4>
+          <div style={{display:'flex',gap:8}}>
+            <div style={{flex:1}}>
+              <div style={{fontSize:13,fontWeight:700}}>Inbox</div>
+              <div style={{maxHeight:120,overflow:'auto',marginTop:8}}>
+                {inbox.length===0 && <div className="muted">No messages</div>}
+                {inbox.map(i=> (
+                  <div key={i.roomId} className="card" style={{marginBottom:6,cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'}} onClick={()=>{ setMsgRoom(i.roomId); loadMessages(); setUnreadCount(0); }}>
                     <div>
-                      <div className="font-semibold text-sm">{i.from?.username || "User"}</div>
-                      <div className="text-xs text-gray-500 truncate">{i.text}</div>
+                      <div style={{fontWeight:700}}>{i.from?.username || 'User'}</div>
+                      <div className="muted">{i.text}</div>
                     </div>
-                    {i.unread > 0 && (
-                      <div className="bg-red-500 text-white rounded-full px-2 text-xs">{i.unread}</div>
-                    )}
+                    {i.unread>0 && <div style={{background:'var(--danger)',color:'#fff',borderRadius:12,padding:'6px 10px',fontSize:12}}>{i.unread}</div>}
                   </div>
-                ))
-              )}
+                ))}
+              </div>
             </div>
-
-            <div className="max-h-56 overflow-auto mt-3 space-y-2">
-              {messages.length === 0 ? (
-                <div className="text-gray-500 text-sm">No messages loaded</div>
-              ) : (
-                messages.map((m) => (
-                  <div key={m._id} className="border rounded p-2 text-sm">
-                    <div>
-                      <strong>{m.from?.username || "Admin"}</strong> →{" "}
-                      <em>{m.to?.username || "User"}</em>
-                    </div>
-                    <div className="text-gray-600">{m.text}</div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="flex gap-2 mt-3">
-              <input
-                placeholder="Reply..."
-                value={msgText}
-                onChange={(e) => setMsgText(e.target.value)}
-                className="input flex-1"
-              />
-              <button onClick={replyMessage} className="btn flex items-center gap-1">
-                <Send className="w-4 h-4" /> Send
-              </button>
-            </div>
+          </div>
+          <div style={{maxHeight:220,overflow:'auto',marginTop:8}}>
+            {messages.length===0 && <div className="muted">No messages loaded</div>}
+            {messages.map(m=> (
+              <div key={m._id} className="card" style={{marginBottom:6}}>
+                <div style={{fontSize:13}}><strong>{m.from?.username || 'Admin'}</strong> → <em>{m.to?.username || 'User'}</em></div>
+                <div className="muted">{m.text}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{display:'flex',gap:8,marginTop:8}}>
+            <input placeholder="Reply text" value={msgText} onChange={e=>setMsgText(e.target.value)} />
+            <button className="btn" onClick={replyMessage}>Send</button>
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }
