@@ -141,4 +141,4 @@ const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/swift_em
   } finally {
     server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
   }
-});
+})();
